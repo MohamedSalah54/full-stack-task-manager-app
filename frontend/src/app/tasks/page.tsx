@@ -7,6 +7,7 @@ import {
   createTask as createTaskAPI,
   updateTask as updateTaskAPI,
   deleteTask as deleteTaskAPI,
+  toggleTaskComplete,
 } from '../../lib/tasks';
 import {
   setTasks,
@@ -16,11 +17,11 @@ import {
   toggleComplete as toggleCompleteAction,
 } from '../../redux/taskSlice';
 import toast from 'react-hot-toast';
-import CategoryFilter from '../../components/CategoryFilter';
-import Dashboard from '../../components/Dashboard';
-import TaskForm from '@/components/TaskForm';
-import TaskList from '../../components/TaskList';
-import DeleteModal from '../../components/DeleteModal';
+import CategoryFilter from '../../components/tasks/CategoryFilter';
+import Dashboard from '../../components/tasks/Dashboard';
+import TaskForm from '@/components/tasks/TaskForm';
+import TaskList from '../../components/tasks/TaskList';
+import DeleteModal from '../../components/tasks/DeleteModal';
 import Loader from '@/loader/Loader';
 import { TaskFormData } from '@/interfaces/taskForm';
 import { Task } from '@/interfaces/task';
@@ -120,14 +121,23 @@ export default function TasksPage() {
     }
   };
 
-  const toggleComplete = (task: Task) => {
-    dispatch(toggleCompleteAction(task._id));
-    if (task.isCompleted) {
-      toast.success('Task marked as incomplete!');
-    } else {
-      toast.success('Task marked as completed!');
+
+  const toggleComplete = async (task: Task) => {
+    try {
+      const updatedTask = await toggleTaskComplete(task._id);
+
+      dispatch({ type: "UPDATE_TASK", payload: updatedTask });
+
+      if (updatedTask.completed) {
+        toast.success("Task marked as completed!");
+      } else {
+        toast.success("Task marked as incomplete!");
+      }
+    } catch (error) {
+      toast.error("something went wrong")
     }
   };
+
 
   const filteredTasks =
     selectedCategory === 'all'

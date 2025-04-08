@@ -35,6 +35,17 @@ export const createTask = async (taskData: TaskCreateData): Promise<Task> => {
   }
 };
 
+export const toggleTaskComplete = async (id: string): Promise<Task> => {
+  try {
+    const response = await API.patch(`/tasks/${id}/toggle-complete`);
+    return response.data;
+  } catch (error) {
+    toast.error("Failed to toggle task status");
+    throw error;
+  }
+};
+
+
 export const updateTask = async (
   _id: string,
   updatedData: TaskUpdateData

@@ -15,13 +15,13 @@ interface RequestWithUser extends Request {
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   create(@Body() createTaskDto: CreateTaskDto, @Req() req: RequestWithUser): Promise<Task> {
     const userId = req.user.userId;
-        return this.tasksService.create(createTaskDto, userId);
+    return this.tasksService.create(createTaskDto, userId);
   }
 
   @Get()
@@ -35,6 +35,14 @@ export class TasksController {
     const userId = req.user.userId;
     return this.tasksService.findOne(id, userId);
   }
+
+  @Patch(':id/toggle-complete')
+  toggleComplete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Task> {
+    const userId = req.user.userId; 
+    return this.tasksService.toggleComplete(id, userId); 
+  }
+  
+
 
   @Patch(':id')
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))

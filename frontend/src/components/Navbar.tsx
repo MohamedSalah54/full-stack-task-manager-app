@@ -1,6 +1,6 @@
-"use client"
+'use client';
 import { useState, useEffect, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
 import { checkAuth, logout } from "@/redux/authSlice";
 import Link from "next/link";
@@ -10,33 +10,47 @@ import Logo from "../../public/images/logo.svg";
 import { FaBars, FaUserCircle } from "react-icons/fa";
 import { logoutUser } from "../lib/auth";
 import toast from "react-hot-toast";
-
+import { useAppSelector } from "@/hooks/redux";
 
 export default function Navbar() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const isAuthenticated = useAppSelector((state: RootState) => state.auth.isAuthenticated);
+  
+  // حالة لتحديد انتهاء عملية التحقق من التوثيق
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    dispatch(checkAuth());
+    // استخدام دالة async للتحقق من حالة التوثيق
+    async function checkUserAuth() {
+      try {
+        await dispatch(checkAuth());
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      } finally {
+        setIsAuthChecked(true);
+      }
+    }
+    checkUserAuth();
   }, [dispatch]);
 
   const handleLogout = async () => {
     try {
-      await logoutUser(); 
-      dispatch(logout()); 
-      router.push("/login"); 
-      toast.success("logout successfully")
-      setIsDropdownOpen(false); 
+      await logoutUser(); // إرسال طلب تسجيل الخروج إلى السيرفر
+      dispatch(logout()); // تحديث حالة التوثيق في Redux
+      router.push("/login");
+      toast.success("Logout successfully");
+      setIsDropdownOpen(false);
     } catch (error) {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     }
   };
+
   const handleProfileClick = () => {
-    setIsDropdownOpen(false);  
+    setIsDropdownOpen(false);
   };
 
   useEffect(() => {
@@ -47,11 +61,15 @@ export default function Navbar() {
     };
 
     document.addEventListener("click", handleClickOutside);
-
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
   }, []);
+
+  // لا تعرض شيء حتى انتهاء عملية التحقق
+  if (!isAuthChecked) {
+    return null; // أو يمكنك عرض Loading spinner هنا
+  }
 
   return (
     <nav className="bg-blue-600 text-white shadow-md sticky top-0 z-50">
@@ -64,10 +82,10 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-6">
           {isAuthenticated ? (
             <>
-             
               <Link href="/tasks" className="hover:text-gray-200 transition">
                 Tasks
               </Link>
+
               <div ref={dropdownRef} className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -80,7 +98,7 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-md shadow-lg">
                     <Link
                       href="/profile"
-                      onClick={handleProfileClick}  
+                      onClick={handleProfileClick}
                       className="block px-4 py-2 hover:bg-gray-200"
                     >
                       My Profile
@@ -100,7 +118,7 @@ export default function Navbar() {
               <Link href="/" className="hover:text-gray-200 transition">
                 Feature
               </Link>
-              <Link href="/register" className="hover:text-gray-200 transition">
+              <Link href="/login" className="hover:text-gray-200 transition">
                 Get Started
               </Link>
               <Link href="/login" className="hover:text-gray-200 transition">
@@ -122,12 +140,11 @@ export default function Navbar() {
         <div className="md:hidden bg-blue-700">
           {isAuthenticated ? (
             <>
-           
               <Link href="/tasks" className="block py-2 px-4 hover:bg-blue-800">
                 Tasks
               </Link>
-              <Link href="/profile/" className="block py-2 px-4 hover:bg-blue-800">
-                My profile
+              <Link href="/profile" className="block py-2 px-4 hover:bg-blue-800">
+                My Profile
               </Link>
               <button
                 onClick={handleLogout}

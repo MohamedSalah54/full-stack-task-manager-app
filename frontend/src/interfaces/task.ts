@@ -5,7 +5,7 @@ export interface Task {
     description: string;
     dueDate: string;
     category: string;
-    isCompleted: boolean;
+    completed: boolean;
     id?: string;
   }
   
@@ -21,6 +21,6 @@ export interface Task {
     description?: string;
     dueDate?: string;
     category?: string;
-    isCompleted?: boolean;
+    completed?: boolean;
   }
   

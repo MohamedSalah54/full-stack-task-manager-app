@@ -3,8 +3,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
-import { ScrapingModule } from './scraping/scraping.module';
-import { UserModule } from './profile/user.module';
+import { UsersModule } from './users/user.module';
+import {ProfileModule} from './profile/profile.module';
 
 
 @Module({
@@ -20,9 +20,9 @@ import { UserModule } from './profile/user.module';
     }),
     AuthModule,
     TasksModule,
-    ScrapingModule,
-    UserModule,
-    UserModule,
+    UsersModule,
+    ProfileModule    
+    
   ],
 })
 export class AppModule {}

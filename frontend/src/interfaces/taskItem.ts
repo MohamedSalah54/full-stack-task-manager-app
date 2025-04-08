@@ -4,7 +4,7 @@ export interface Task {
   description: string;
   dueDate: string;
   category: string;
-  isCompleted: boolean;
+  completed: boolean;
 }
 
 export interface TaskItemProps {
@@ -13,5 +13,6 @@ export interface TaskItemProps {
   onToggleTooltip: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleComplete: () => void;
+    onToggleComplete: () => void;
+  
 }

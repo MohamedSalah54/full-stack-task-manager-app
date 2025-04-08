@@ -5,14 +5,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { UserSchema } from './schemas/user.schema';
-import { ScrapingService } from '../scraping/scraping.service';
+import { User, UserSchema } from './schemas/user.schema';
+import { ProfileModule } from 'src/profile/profile.module';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    ProfileModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,7 +24,7 @@ import { ScrapingService } from '../scraping/scraping.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy,ScrapingService],
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {
