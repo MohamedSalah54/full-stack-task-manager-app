@@ -1,20 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User } from '../schemas/user.schema'; 
 
 const cookieExtractor = (req: Request): string | null => {
-  let token = null;
   if (req && req.cookies) {
-    token = req.cookies['jwt']; 
+    return req.cookies['jwt'];
   }
-  return token;
+  return null;
 };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+  ) {
     super({
       jwtFromRequest: cookieExtractor,
       ignoreExpiration: false,
@@ -23,8 +28,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+    const user = await this.userModel.findById(payload.sub);
+    console.log(user);
+    
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return user; 
   }
-  
-  
 }

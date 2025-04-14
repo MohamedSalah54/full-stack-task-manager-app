@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from '../auth/schemas/user.schema';
@@ -8,10 +8,13 @@ import { ProfileService } from 'src/profile/profile.service';
 
 @Injectable()
 export class UsersService {
+  findById(userId: string) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
-    @InjectModel('User') private userModel: Model<User>,
-    private readonly profileService: ProfileService, 
-
+    @InjectModel(User.name) private userModel: Model<User>,
+    @Inject(forwardRef(() => ProfileService))
+    private readonly profileService: ProfileService,
   ) {}
 
   async getAllUsers(): Promise<User[]> {
@@ -48,28 +51,27 @@ export class UsersService {
     if (updatedUser) {
       const user = updatedUser as User;
   
-      const profile = await this.profileService.getProfileByUserId((user._id as Types.ObjectId).toString());  
+      console.log('Updated user:', user);
+  
+      const profile = await this.profileService.getProfileByUserId((user._id as Types.ObjectId).toString());
   
       if (profile) {
-        const userId = profile.userId instanceof Types.ObjectId ? profile.userId.toHexString() : profile.userId;
+        console.log('Profile found:', profile);
   
-        await this.profileService.updateProfile(userId, {
-          role: user.role,
-          name: user.name,
-          email: user.email, 
+        const updatedProfile = await this.profileService.updateProfile((user._id as Types.ObjectId).toString(), {
+          role: user.role,   
+          name: user.name,   
+          email: user.email,
         });
+  
+        console.log('Updated Profile:', updatedProfile);
+      } else {
+        console.log("Profile not found for user:", user._id);
       }
     }
   
     return updatedUser;
   }
-  
-  
-  
-  
-  
-  
-  
   
 
   async deleteUser(id: string): Promise<User | null> {

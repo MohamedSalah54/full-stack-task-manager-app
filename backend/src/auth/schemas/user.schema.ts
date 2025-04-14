@@ -1,6 +1,6 @@
 // user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -53,11 +53,11 @@ export class User extends Document {
     incompleteTasks: number;
   };
 
-  @Prop()
-  teamLeader: string;
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  teamLeader: Types.ObjectId; 
 
-  @Prop()
-  team: string;
+  @Prop({ type: Types.ObjectId, ref: 'Team' })
+  team: Types.ObjectId;
 
   @Prop()
   position: string;

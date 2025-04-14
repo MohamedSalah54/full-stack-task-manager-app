@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -11,36 +12,50 @@ import { FaBars, FaUserCircle } from "react-icons/fa";
 import { logoutUser } from "../lib/auth";
 import toast from "react-hot-toast";
 import { useAppSelector } from "@/hooks/redux";
+import { fetchProfile } from "@/redux/profileSlice";
+import Loader from "@/loader/Loader";
 
 export default function Navbar() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { profile } = useAppSelector((state) => state.profile);
   const isAuthenticated = useAppSelector((state: RootState) => state.auth.isAuthenticated);
-  
-  // حالة لتحديد انتهاء عملية التحقق من التوثيق
+  const userId = useAppSelector((state: RootState) => state.auth.user?.id);
+  const role = useAppSelector((state: RootState) => state.auth.user?.role);
+
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isRoleLoaded, setIsRoleLoaded] = useState(false);
 
   useEffect(() => {
-    // استخدام دالة async للتحقق من حالة التوثيق
-    async function checkUserAuth() {
+    async function loadData() {
       try {
-        await dispatch(checkAuth());
+        await dispatch(checkAuth());  // التأكد من المصادقة
+        if (userId) {
+          await dispatch(fetchProfile(userId));  // تحميل بيانات المستخدم
+        }
       } catch (error) {
-        console.error("Auth check failed:", error);
       } finally {
         setIsAuthChecked(true);
+        setIsRoleLoaded(true);  // البيانات تم تحميلها
       }
     }
-    checkUserAuth();
-  }, [dispatch]);
+    
+    loadData();
+  }, [dispatch, userId]);  // يعتمد على `userId` فقط
+
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      dispatch(fetchProfile(userId));
+    }
+  }, [dispatch, isAuthenticated, userId]);
 
   const handleLogout = async () => {
     try {
-      await logoutUser(); // إرسال طلب تسجيل الخروج إلى السيرفر
-      dispatch(logout()); // تحديث حالة التوثيق في Redux
+      await logoutUser();
+      dispatch(logout());
       router.push("/login");
       toast.success("Logout successfully");
       setIsDropdownOpen(false);
@@ -49,28 +64,42 @@ export default function Navbar() {
     }
   };
 
-  const handleProfileClick = () => {
-    setIsDropdownOpen(false);
-  };
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
-
     document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // لا تعرض شيء حتى انتهاء عملية التحقق
-  if (!isAuthChecked) {
-    return null; // أو يمكنك عرض Loading spinner هنا
-  }
+  if (!isAuthChecked || !isRoleLoaded) return <div className="text-center py-4 text-white bg-blue-600"><Loader /></div>;
+  
 
+  const baseUrl = "http://localhost:3001";
+  const imageUrl = profile?.profileImage
+    ? profile.profileImage.startsWith("http")
+      ? profile.profileImage.replace(/\\/g, "/")
+      : `${baseUrl}/static/${profile.profileImage}`.replace(/\\/g, "/") 
+    : "";
+  
+
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const canSeeTeam = role && (role === 'user' || role === 'team-lead');
+ 
+  
+  
+
+  
   return (
     <nav className="bg-blue-600 text-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -86,19 +115,37 @@ export default function Navbar() {
                 Tasks
               </Link>
 
+              {canSeeTeam && (
+                <Link href="/teams" className="hover:text-gray-200 transition">
+                  Team
+                </Link>
+              )}
+
               <div ref={dropdownRef} className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center space-x-2 focus:outline-none"
                 >
-                  <FaUserCircle className="text-2xl" />
+                  {profile && profile.profileImage && isValidUrl(imageUrl) ? (
+                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+                      <Image
+                        src={imageUrl}
+                        alt="Profile"
+                        width={40}
+                        height={40}
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <FaUserCircle className="text-2xl" />
+                  )}
                 </button>
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-md shadow-lg">
                     <Link
                       href="/profile"
-                      onClick={handleProfileClick}
+                      onClick={() => setIsDropdownOpen(false)}
                       className="block px-4 py-2 hover:bg-gray-200"
                     >
                       My Profile
@@ -143,6 +190,13 @@ export default function Navbar() {
               <Link href="/tasks" className="block py-2 px-4 hover:bg-blue-800">
                 Tasks
               </Link>
+
+              {canSeeTeam && (
+                <Link href="/team" className="block py-2 px-4 hover:bg-blue-800">
+                  Team
+                </Link>
+              )}
+
               <Link href="/profile" className="block py-2 px-4 hover:bg-blue-800">
                 My Profile
               </Link>

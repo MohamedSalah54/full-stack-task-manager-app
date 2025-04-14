@@ -4,6 +4,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   name?: string;
+
   @IsOptional()
   @IsString()
   email?: string;
@@ -22,7 +23,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  role?: string;
+  role?: 'user' | 'team-lead' | 'admin'; 
 
   @IsOptional()
   @IsString()

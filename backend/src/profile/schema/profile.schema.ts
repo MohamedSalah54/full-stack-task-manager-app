@@ -21,9 +21,9 @@ export class Profile extends Document {
   @Prop({ default: '' })
   teamLead: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ default: 'user' }) 
   role: string;
-
+  
   @Prop({ default: '' })
   position: string;
 

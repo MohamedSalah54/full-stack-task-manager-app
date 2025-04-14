@@ -5,7 +5,8 @@ import taskReducer from './taskSlice';
 import accountReducer from './accountReducer';
 import createUserReducer from './userSlice';
 import userReducer from './accountReducer';
-
+import profileReducer from './profileSlice'
+import teamReducer from './teamSlice';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -13,6 +14,9 @@ export const store = configureStore({
     account: accountReducer,
     createUser: createUserReducer,
     user: userReducer,
+    profile: profileReducer,
+    teams: teamReducer, 
+
   },
 });
 

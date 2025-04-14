@@ -4,7 +4,9 @@
     user:{
       email:String,
       name:String,
-      role:String
+      role:String,
+      id:String,
+      profileImage:String
     } | null;
     error: string | null;
   }
