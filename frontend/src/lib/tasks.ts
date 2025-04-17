@@ -6,7 +6,7 @@ export const getTasks = async (category: string = "all"): Promise<Task[]> => {
   try {
     const normalizedCategory = category.toLowerCase();
     const endpoint = normalizedCategory === "all" ? "/tasks" : `/tasks?category=${normalizedCategory}`;
-    const response = await API.get(endpoint);
+    const response = await API.get(endpoint, { withCredentials: true });  // إضافة withCredentials هنا
     const tasks: Task[] = response.data.map((task: Task) => ({
       ...task,
       id: task._id,
@@ -18,16 +18,23 @@ export const getTasks = async (category: string = "all"): Promise<Task[]> => {
   }
 };
 
-export const createTask = async (taskData: TaskCreateData): Promise<Task> => {
+export const createTask = async (taskData: TaskCreateData, creatorId: string): Promise<Task> => {
   try {
+
     const newTaskData = {
       ...taskData,
-      category: taskData.category.toLowerCase(),
+      ...(taskData.category ? { category: taskData.category.toLowerCase() } : {}), 
+      assignedTo: taskData.assignedTo || creatorId,
     };
-    const response = await API.post("/tasks", newTaskData);
+
+    const response = await API.post("/tasks", newTaskData, {
+      withCredentials: true,  
+    });
+
     if (!response.data || !response.data._id) {
       throw new Error("Failed to get task ID from response");
     }
+
     return response.data;
   } catch (error: any) {
     toast.error("Failed to Create Task");
@@ -35,9 +42,30 @@ export const createTask = async (taskData: TaskCreateData): Promise<Task> => {
   }
 };
 
+// تعديل في fetchTasksTeam
+export const fetchTasksTeam = async (): Promise<Task[]> => {
+  try {
+    const response = await API.get(`/tasks`, {
+      withCredentials: true,
+    });
+
+    if (!response.data) {
+      throw new Error("Failed to fetch tasks");
+    }
+
+    return response.data; 
+  } catch (error: any) {
+    toast.error("Failed to fetch tasks");
+    throw error;
+  }
+}
+
+
+
+
 export const toggleTaskComplete = async (id: string): Promise<Task> => {
   try {
-    const response = await API.patch(`/tasks/${id}/toggle-complete`);
+    const response = await API.patch(`/tasks/${id}/toggle-complete`, {}, { withCredentials: true }); // إضافة withCredentials هنا
     return response.data;
   } catch (error) {
     toast.error("Failed to toggle task status");
@@ -45,13 +73,9 @@ export const toggleTaskComplete = async (id: string): Promise<Task> => {
   }
 };
 
-
-export const updateTask = async (
-  _id: string,
-  updatedData: TaskUpdateData
-): Promise<Task> => {
+export const updateTask = async (_id: string, updatedData: TaskUpdateData): Promise<Task> => {
   try {
-    const response = await API.patch(`/tasks/${_id}`, updatedData);
+    const response = await API.patch(`/tasks/${_id}`, updatedData, { withCredentials: true });  // إضافة withCredentials هنا
     return response.data;
   } catch (error: any) {
     toast.error("Failed to Update Task");
@@ -61,7 +85,7 @@ export const updateTask = async (
 
 export const deleteTask = async (_id: string): Promise<any> => {
   try {
-    const response = await API.delete(`/tasks/${_id}`);
+    const response = await API.delete(`/tasks/${_id}`, { withCredentials: true }); // إضافة withCredentials هنا
     return response.data;
   } catch (error) {
     toast.error("Failed to Delete Task");

@@ -6,7 +6,7 @@ import {
     NotFoundException,
   } from '@nestjs/common';
   import { InjectModel } from '@nestjs/mongoose';
-  import { HydratedDocument, Model, Types } from 'mongoose';
+  import {  Model, Types } from 'mongoose';
   import { Team } from './schema/team.schema';
   import { User, UserRole } from '../auth/schemas/user.schema';
   import { CreateTeamDto, UpdateTeamDto } from './dto/team.dto';
@@ -19,12 +19,13 @@ import {
       @InjectModel(User.name) private readonly userModel: Model<User>,
     ) {}
   
-    async createTeam(dto: CreateTeamDto, currentUser: HydratedDocument<User>) {
+    async createTeam(dto: CreateTeamDto, currentUser: { userId: string; role: string }) {
       if (currentUser.role !== UserRole.TEAM_LEAD) {
         throw new ForbiddenException('Only team leads can create teams');
       }
     
-      console.log('✅ Step 1: Starting team creation');
+      const userDoc = await this.userModel.findById(currentUser.userId);
+      if (!userDoc) throw new NotFoundException('User not found');
     
       const members = await Promise.all(
         dto.members.map(async (email) => {
@@ -36,35 +37,26 @@ import {
         }),
       );
     
-      console.log('✅ Step 2: Members found', members.map(m => ({
-        id: m._id,
-        name: m.name,
-        email: m.email
-      })));
-    
       const team = await this.teamModel.create({
         name: dto.name,
         description: dto.description,
-        teamLeader: currentUser._id,
+        teamLeader: userDoc._id,
         members: members.map((u) => u._id),
       });
-    
-      console.log('✅ Step 3: Team created', (team._id as Types.ObjectId).toString());
     
       await Promise.all(
         members.map((user) => {
           user.team = team._id as Types.ObjectId;
-          user.teamLeader = currentUser._id as Types.ObjectId;
+          user.teamLeader = userDoc._id as Types.ObjectId;
+          
           return user.save();
         }),
       );
     
-      currentUser.team = team._id as Types.ObjectId;
-      await currentUser.save();
+      userDoc.team = team._id as Types.ObjectId;
+
+      await userDoc.save();
     
-      console.log('✅ Step 4: Users updated with team');
-    
-      // استخدام Aggregation Pipeline بدلاً من populate
       const populatedTeam = await this.teamModel.aggregate([
         { $match: { _id: new Types.ObjectId(team._id as string) } },
         {
@@ -96,126 +88,132 @@ import {
         },
       ]);
     
-      console.log('✅ Step 5: Populated team', JSON.stringify(populatedTeam, null, 2));
-    
       return populatedTeam;
     }
     
-    
       
       
     
   
-    async updateTeam(id: string, dto: UpdateTeamDto, currentUser: User) {
+    async updateTeam(id: string, dto: UpdateTeamDto, currentUser: User  | any) {
       const team = await this.teamModel.findById(id);
       if (!team) throw new NotFoundException('Team not found');
-  
-      if (team.teamLeader.toString() !==( currentUser._id as Types.ObjectId) .toString()) {
+    
+      if (team.teamLeader.toString() !== currentUser.userId.toString()) {
         throw new ForbiddenException('Only the team leader can update this team');
       }
-  
-      if (dto.members) {
-        await this.userModel.updateMany(
-          { _id: { $in: team.members } },
-          { $unset: { team: '', teamLeader: '' } },
-        );
-  
-        const newMembers = await Promise.all(
-          dto.members.map(async (email) => {
-            const user = await this.userModel.findOne({ email });
-            if (!user) throw new NotFoundException(`User with email ${email} not found`);
-            if (user.role !== UserRole.USER) throw new BadRequestException(`${email} is not a user`);
-            return user;
-          }),
-        );
-  
-        team.members  = newMembers.map((u) => u._id) as Types.ObjectId[];
-        await Promise.all(
-          newMembers.map((user) => {
-            user.team = team._id as Types.ObjectId;
-            user.teamLeader = currentUser._id as Types.ObjectId;
-            return user.save();
-          }),
-        );
+    
+      if (Array.isArray(dto.members)) {
+        const currentMembers = team.members || [];
+    
+        if (currentMembers.length > 0) {
+          await this.userModel.updateMany(
+            { _id: { $in: currentMembers } },
+            { $unset: { team: '', teamLeader: '' } },
+          );
+        }
+    
+        if (dto.members.length > 0) {
+          const newMembers: User[] = await Promise.all(
+            dto.members.map(async (email) => {
+              const user = await this.userModel.findOne({ email });
+              if (!user) throw new NotFoundException(`User with email ${email} not found`);
+              return user;
+            }),
+          );
+    
+          team.members = newMembers.map((u) => u._id as Types.ObjectId);
+    
+          await Promise.all(
+            newMembers.map((user) => {
+              user.team = team._id as Types.ObjectId;
+              user.teamLeader = currentUser.userId as Types.ObjectId;  
+              return user.save();
+            }),
+          );
+        } else {
+          team.members = [];
+        }
       }
-  
+    
       if (dto.name) team.name = dto.name;
       if (dto.description) team.description = dto.description;
-  
+    
       return team.save();
     }
+    
   
-    async deleteTeam(id: string, currentUser: User) {
+    async deleteTeam(id: string, currentUser: User | any) {
       const team = await this.teamModel.findById(id);
       if (!team) throw new NotFoundException('Team not found');
-  
-      if (team.teamLeader.toString() !== (currentUser._id as Types.ObjectId).toString()) {
+    
+      if (team.teamLeader.toString() !== currentUser.userId) {
         throw new ForbiddenException('Only the team leader can delete this team');
       }
-  
+    
       await this.userModel.updateMany(
         { team: team._id },
         { $unset: { team: '', teamLeader: '' } },
       );
-  
+    
       await team.deleteOne();
       return { message: 'Team deleted successfully' };
     }
+    
   
-    async getMyTeam(currentUser: User): Promise<Team> {
+    async getMyTeam(currentUser: User): Promise<Team | null> {
       if (!currentUser.team) {
-       null
+        return null;
       }
-      
-  
+    
       const team = await this.teamModel.aggregate([
-        { $match: { _id: currentUser.team } }, 
-        {
-          $lookup: {
-            from: 'users', 
-            localField: 'members', 
-            foreignField: '_id', 
-            as: 'membersDetails',
-          },
-        },
+        { $match: { _id: currentUser.team } },
         {
           $lookup: {
             from: 'users',
-            localField: 'teamLeader', 
+            localField: 'teamLeader',
             foreignField: '_id',
-            as: 'teamLeaderDetails',
+            as: 'teamLeader',
+          },
+        },
+        { $unwind: '$teamLeader' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'members',
+            foreignField: '_id',
+            as: 'members',
           },
         },
         {
           $project: {
             name: 1,
-            description: 1, // ✅ أضف ده هنا
-            teamLeader: { $arrayElemAt: ['$teamLeaderDetails', 0] },
+            description: 1,
             createdAt: 1,
             updatedAt: 1,
+            teamLeader: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              image: 1,
+            },
             members: {
-              $map: {
-                input: "$membersDetails",
-                as: "member",
-                in: {
-                  _id: "$$member._id",
-                  name: "$$member.name",
-                  email: "$$member.email",
-                  image: "$$member.image"
-                }
-              }
-            }
-          }
-          
+              _id: 1,
+              name: 1,
+              email: 1,
+              image: 1,
+            },
+          },
         },
       ]);
-      
+    
       if (team.length === 0) {
-        null
+        return null;
       }
-  
+    
       return team[0];
     }
+    
   
     async checkUser(email: string) {
       const user = await this.userModel.findOne({ email });
@@ -227,5 +225,42 @@ import {
         isFree: !user.team,
       };
     }
+
+    async getMyTeamMembersIfTeamLead(currentUser: User) {
+      if (!currentUser.team) {
+        throw new NotFoundException('No team found');
+      }
+    
+      const team = await this.teamModel.aggregate([
+        { $match: { _id: new Types.ObjectId(currentUser.team) } },
+        {
+          $lookup: {
+            from: 'users', 
+            localField: 'members',
+            foreignField: '_id', 
+            as: 'membersDetails', 
+          }
+        },
+        {
+          $project: {
+            membersDetails: {
+              _id: 1,
+              name: 1, 
+              email: 1 
+            }
+          }
+        }
+      ]);
+    
+      if (!team || team.length === 0) {
+        throw new NotFoundException('Team not found');
+      }
+    
+      return team[0].membersDetails; 
+    }
+    
+    
+    
+    
   }
   

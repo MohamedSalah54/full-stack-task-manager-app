@@ -4,7 +4,7 @@ import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from '../schemas/user.schema'; 
 
 const cookieExtractor = (req: Request): string | null => {
@@ -29,11 +29,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     const user = await this.userModel.findById(payload.sub);
-    console.log(user);
-    
+
+
+  
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
-    return user; 
+  
+    return {
+      userId: (user._id as Types.ObjectId).toString(), 
+      email: user.email,
+      role: user.role, 
+      team: user.team,
+
+    };
   }
+  
 }

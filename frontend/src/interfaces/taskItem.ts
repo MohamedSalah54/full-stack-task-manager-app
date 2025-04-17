@@ -13,6 +13,6 @@ export interface TaskItemProps {
   onToggleTooltip: () => void;
   onEdit: () => void;
   onDelete: () => void;
-    onToggleComplete: () => void;
+  onToggleComplete: () => void;
   
 }

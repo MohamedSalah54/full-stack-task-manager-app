@@ -1,10 +1,11 @@
 
 export interface Task {
+    assignedTo: ReactNode;
     _id: string;
     title: string;
     description: string;
     dueDate: string;
-    category: string;
+    category?: string;
     completed: boolean;
     id?: string;
   }
@@ -13,7 +14,8 @@ export interface Task {
     title: string;
     description: string;
     dueDate: string;
-    category: string;
+    category?: string;
+    assignedTo?: string;
   }
   
   export interface TaskUpdateData {

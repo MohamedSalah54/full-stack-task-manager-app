@@ -2,16 +2,17 @@
 import React, { useState, Fragment, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Dialog, Transition } from '@headlessui/react';
-import { CreateTeamDto } from '../../interfaces/team';
-import { RootState } from '../../redux/store';
+import { CreateTeamDto } from '../../../interfaces/team';
+import { RootState } from '../../../redux/store';
 import toast from 'react-hot-toast';
-import { addTeam, fetchTeams } from '../../redux/teamSlice';
-import { checkUserInTeam } from '../../lib/teams';  // استدعاء دالة التحقق من المستخدم
-import Tooltip from '@mui/material/Tooltip';  // لمكتبة MUI على سبيل المثال
+import { addTeam, fetchTeams } from '../../../redux/teamSlice';
+import { checkUserInTeam } from '../../../lib/teams';
+import Tooltip from '@mui/material/Tooltip';
 
 
 interface CreateTeamModalProps {
   onClose: () => void;
+
 }
 
 const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
@@ -22,8 +23,8 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
   const [members, setMembers] = useState<string[]>([]);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const [emailStatus, setEmailStatus] = useState<string | null>(null);  // لحالة البريد الإلكتروني
-  const [isChecking, setIsChecking] = useState(false);  // للتحقق من البريد الإلكتروني
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
 
   const { loading, error: teamError } = useSelector((state: RootState) => state.teams);
 
@@ -31,14 +32,13 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
     if (email && !members.includes(email)) {
       setMembers([...members, email]);
       setEmail('');
-      setEmailStatus(null);  // إعادة تعيين حالة البريد الإلكتروني
+      setEmailStatus(null);
       setError('');
     } else {
       setError('Please enter a valid email or member already added.');
     }
   };
 
-  // دالة للتحقق من حالة البريد الإلكتروني عند الكتابة
   const handleEmailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
@@ -51,13 +51,12 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
     }
 
     try {
-      console.log("Checking user with email:", value);  // لوج لتتبع البريد الإلكتروني
-      const userStatus = await checkUserInTeam(value);  // استدعاء الدالة من API
-      console.log("User status response:", userStatus); // لوج للاستجابة من السيرفر
+      console.log("Checking user with email:", value);
+      const userStatus = await checkUserInTeam(value);
+      console.log("User status response:", userStatus);
 
-      // هنا يمكننا تعديل الكود بناءً على الاستجابة الجديدة
       if (userStatus) {
-        if (userStatus.isFree) { // إذا كانت الاستجابة تحتوي على isFree
+        if (userStatus.isFree) {
           setEmailStatus('Available');
         } else {
           setEmailStatus('In a team');
@@ -66,7 +65,7 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
         setEmailStatus('User not found');
       }
     } catch (error) {
-      console.error("Error while checking user:", error);  // لوج للخطأ إذا حدث
+      console.error("Error while checking user:", error);
       setEmailStatus('Error checking user');
     } finally {
       setIsChecking(false);
@@ -162,10 +161,10 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
                     <Tooltip title={emailStatus} placement="top">
                       <div
                         className={`text-sm mt-2 ${emailStatus === 'In a team'
-                            ? 'text-red-500'  // إذا كان المستخدم في فريق، اجعل النص أحمر
-                            : emailStatus === 'Available'
-                              ? 'text-green-500'  // إذا كان فري، اجعل النص أخضر
-                              : 'text-gray-600'  // للحالات الأخرى مثل "User not found" أو الخطأ
+                          ? 'text-red-500'
+                          : emailStatus === 'Available'
+                            ? 'text-green-500'
+                            : 'text-gray-600'
                           }`}
                       >
                         {emailStatus}
@@ -175,12 +174,23 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose }) => {
 
 
                   {members.length > 0 && (
-                    <ul className="list-disc list-inside text-sm text-gray-700">
+                    <ul className="space-y-1 text-sm text-gray-700">
                       {members.map((member, index) => (
-                        <li key={index}>{member}</li>
+                        <li key={index} className="flex items-center">
+                          <span className="mr-2">{member}</span>
+                          <button
+                            onClick={() =>
+                              setMembers((prev) => prev.filter((_, i) => i !== index))
+                            }
+                            className="text-black hover:text-red-600 text-base"
+                          >
+                            &times;
+                          </button>
+                        </li>
                       ))}
                     </ul>
                   )}
+
 
                   {error && (
                     <div className="text-red-500 text-sm">{error}</div>

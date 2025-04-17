@@ -38,8 +38,17 @@ export const createTeam = async (data: CreateTeamDto): Promise<Team> => {
 };
 
 export const updateTeam = async (id: string, data: UpdateTeamDto): Promise<Team> => {
+  if (!data) {
+    throw new Error("No data provided for update.");
+  }
+
+  const safeData = {
+    ...data,
+    members: data.members ?? [],
+  };
+
   try {
-    const response = await axios.put(`${API_URL}/${id}`, data, { withCredentials: true });
+    const response = await axios.put(`${API_URL}/${id}`, safeData, { withCredentials: true });
     return response.data;
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -48,6 +57,10 @@ export const updateTeam = async (id: string, data: UpdateTeamDto): Promise<Team>
     throw new Error('An unknown error occurred');
   }
 };
+
+
+
+
 
 export const deleteTeam = async (id: string): Promise<void> => {
   try {
@@ -68,13 +81,26 @@ export const checkUserInTeam = async (email: string): Promise<any> => {
       params: { email },
       withCredentials: true 
     });
-    // قم بإرجاع الشكل المناسب للاستجابة بناءً على البيانات المتوفرة
-    return response.data;  // تأكد من أن الدالة ترجع الاستجابة الصحيحة
+    return response.data;  
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(error.message || 'Failed to check user');
     }
     throw new Error('An unknown error occurred');
+  }
+};
+
+
+export const getTeamMembers = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/my-members`, {
+      withCredentials: true,
+    });
+
+    return res.data.members;
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || "Failed to fetch team members");
+    return [];
   }
 };
 

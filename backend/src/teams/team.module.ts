@@ -15,5 +15,6 @@ import { TeamService } from './team.service';
   ],
   controllers: [TeamController],
   providers: [TeamService],
+  exports: [MongooseModule],
 })
 export class TeamModule {}

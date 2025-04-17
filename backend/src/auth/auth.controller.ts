@@ -63,7 +63,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req: RequestWithUser) {
-    console.log('User from JWT:', req.user);
     return { message: 'Authenticated', user: req.user };
   }
 }

@@ -51,7 +51,6 @@ const teamSlice = createSlice({
       })
       .addCase(fetchTeams.fulfilled, (state, action) => {
         state.loading = false;
-        // الوصول إلى الـ team داخل المصفوفة
         state.teams = action.payload.length > 0 ? [action.payload[0].team] : [];
       })
       

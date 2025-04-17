@@ -16,7 +16,9 @@ export class Team extends Document {
   
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   members: (Types.ObjectId | User)[];
-  
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Task' }], default: [] })
+  tasks: Types.ObjectId[];
 }
 
 export const TeamSchema = SchemaFactory.createForClass(Team);
