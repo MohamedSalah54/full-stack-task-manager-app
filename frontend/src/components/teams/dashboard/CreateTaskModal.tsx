@@ -4,71 +4,75 @@ import { Listbox } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import { useState, useEffect } from "react";
 import { getTeamMembers } from "@/lib/teams";
-import { createTask } from "@/lib/tasks";
+import { createTask, fetchAllTasksForTeamLead } from "@/lib/tasks"; 
 import toast from "react-hot-toast";
-import { useAppSelector } from "@/hooks/redux";
+import { useAppSelector, useAppDispatch } from "@/hooks/redux";
+import { setTasks } from "@/redux/taskSlice"; 
 
 interface Props {
-    onClose: () => void;
-    teamId: string;
-    onTaskCreated: () => void;
+  onClose: () => void;
+  teamId: string;
+  onTaskCreated: () => void;
 }
 
 export default function CreateTaskModal({ onClose, onTaskCreated, teamId }: Props) {
-    const [formData, setFormData] = useState({
-        title: "",
-        description: "",
-        dueDate: "",
-        assignedTo: "",
-        category: "Work"
-    });
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+    assignedTo: "",
+    category: "Work"
+  });
 
-    const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const dispatch = useAppDispatch(); // استخدام الـ dispatch
+  const creatorId = useAppSelector((state) => {
+    return state.user?.id;
+  });
 
-    const creatorId = useAppSelector((state) => {
-        return state.user?.id;
-    });
+  useEffect(() => {
+    getTeamMembers()
+      .then((data) => {
+        setMembers(data);
+        console.log("Fetched team members:", data);
+      })
+      .catch((error) => {
+        console.error("Error fetching members:", error);
+        toast.error("Failed to fetch members");
+      });
+  }, []);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-
-    useEffect(() => {
-        getTeamMembers()
-            .then((data) => {
-                setMembers(data);
-                console.log("Fetched team members:", data);
-            })
-            .catch((error) => {
-                console.error("Error fetching members:", error);
-                toast.error("Failed to fetch members");
-            });
-    }, []);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log("Form Data before submit:", formData);
-        try {
-          const taskData = {
-            ...formData,
-            teamId,
-          };
-      
-          const response = await createTask(taskData, creatorId);
-          toast.success("Task created successfully!");
-          onClose();
-          onTaskCreated();
-        } catch (err) {
-          toast.error("Failed to create task.");
-        }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form Data before submit:", formData);
+    try {
+      const taskData = {
+        ...formData,
+        teamId,
       };
-      
+
+      const response = await createTask(taskData, creatorId);
+      toast.success("Task created successfully!");
+      onClose();
+
+      // استدعاء دالة onTaskCreated بعد إنشاء المهمة
+      onTaskCreated();
+
+      // بعد إنشاء المهمة، استدعاء الـ fetch لإحضار المهام المحدثة
+      const updatedTasks = await fetchAllTasksForTeamLead(teamId);  // تأكد من استيراد دالة fetchTasksForTeam
+      dispatch(setTasks(updatedTasks));  // تحديث المهام في الـ Redux
+    } catch (err) {
+      toast.error("Failed to create task.");
+    }
+  };
 
     return (
         <Dialog open={true} onClose={onClose}>
-            <div className="fixed inset-0 bg-black bg-opacity-30" />
+            <div className="fixed inset-0 bg-black bg-opacity-30 " />
             <div className="fixed inset-0 flex items-center justify-center p-4">
                 <Dialog.Panel className="bg-white rounded-lg p-6 max-w-md w-full">
                     <Dialog.Title className="text-lg font-bold mb-4">Create Task</Dialog.Title>

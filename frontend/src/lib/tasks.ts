@@ -60,12 +60,24 @@ export const fetchTasksTeam = async (): Promise<Task[]> => {
   }
 }
 
+export const fetchAllTasksForTeamLead = async (teamId) => {
+  try {
+    const { data } = await API.get(`/tasks/team/all`, {
+      params: { teamId },
+      withCredentials: true,
+    });
+    return data;
+  } catch (error) {
+    console.error("Error fetching team tasks:", error);
+    throw error;
+  }
+};
 
 
 
 export const toggleTaskComplete = async (id: string): Promise<Task> => {
   try {
-    const response = await API.patch(`/tasks/${id}/toggle-complete`, {}, { withCredentials: true }); // إضافة withCredentials هنا
+    const response = await API.patch(`/tasks/${id}/toggle-complete`, {}, { withCredentials: true }); 
     return response.data;
   } catch (error) {
     toast.error("Failed to toggle task status");

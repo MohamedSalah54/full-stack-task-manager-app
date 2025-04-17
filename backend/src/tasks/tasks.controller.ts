@@ -30,18 +30,26 @@ export class TasksController {
     return this.tasksService.findAll(userId, category);
   }
 
+  @Get('/team/all')
+  getAllTasksForTeam(@Query('teamId') teamId: string): Promise<Task[]> {
+    return this.tasksService.findAllTasksForTeamLead(teamId);
+  }
+  
+
+
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Task> {
     const userId = req.user.userId;
     return this.tasksService.findOne(id, userId);
   }
+  
 
   @Patch(':id/toggle-complete')
   toggleComplete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Task> {
-    const userId = req.user.userId; 
-    return this.tasksService.toggleComplete(id, userId); 
+    const userId = req.user.userId;
+    return this.tasksService.toggleComplete(id, userId);
   }
-  
+
 
 
   @Patch(':id')

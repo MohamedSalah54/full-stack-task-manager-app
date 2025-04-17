@@ -49,4 +49,14 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsBoolean()
   completed?: boolean;
+
+  @IsOptional()
+  @IsMongoId({ message: 'teamId must be a valid MongoDB ObjectId' })
+  teamId?: string; 
+
+  @IsOptional()
+  @IsMongoId({ message: 'assignedTo must be a valid MongoDB ObjectId' })
+  assignedTo?: string; 
 }
+
+

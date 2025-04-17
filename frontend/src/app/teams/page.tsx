@@ -16,8 +16,16 @@ import { updateTeam } from "@/lib/teams";
 import CreateTaskModal from "../../components/teams/dashboard/CreateTaskModal";
 import { Card, CardContent, Typography, Badge, Box, CircularProgress } from "@mui/material";
 import { green, red } from "@mui/material/colors";
-import { fetchTasksTeam } from "@/lib/tasks";
+import { fetchAllTasksForTeamLead, fetchTasksTeam } from "@/lib/tasks";
 import { setTasks } from "@/redux/taskSlice";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 const TeamPage = () => {
   const dispatch = useDispatch();
@@ -29,9 +37,9 @@ const TeamPage = () => {
   const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   const teamId = useAppSelector((state) => state.teams.teams[0]?._id);
-  console.log("teamIDDDD:" + teamId);
 
-
+  const tasks = useAppSelector((state) => state.tasks.tasks);
+  const loading = useAppSelector((state) => state.tasks.loading);
 
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -40,36 +48,63 @@ const TeamPage = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showCreateTaskModal, setCreateTaskModal] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
-  const tasks = useAppSelector((state) => state.tasks.tasks);
-  const loading = useAppSelector((state) => state.tasks.loading);
+
+
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, taskId: string) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTaskId(taskId);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+    setSelectedTaskId(null);
+  };
+
+
 
   useEffect(() => {
-    if (!teamId) {
-      console.log("teamId is undefined, waiting for it to load...");
-      return; // لا نعمل Fetch إلا إذا كان teamId موجود
+    if (!teamId || !currentUser) {
+      return;
     }
 
-    console.log("Fetching tasks for teamId:", teamId); // Log to track the fetch attempt
-    fetchTasksTeam(teamId)
-      .then((tasksData) => {
-        console.log("Fetched tasks:", tasksData);  // Log to see fetched tasks
-        dispatch(setTasks(tasksData));
-      })
-      .catch((error) => {
-        console.error("Error fetching tasks:", error);  // Log error if fetch fails
-      });
-  }, [teamId]);
+    if (currentUser.role === "team-lead") {
+      fetchAllTasksForTeamLead(teamId)
 
-  const handleTaskCreated = () => {
-    console.log("Task created, fetching updated tasks...");
-    if (teamId) {
-      fetchTasksTeam(teamId)
         .then((tasksData) => {
-          console.log("Fetched tasks after creation:", tasksData); // Log to see fetched tasks after creation
           dispatch(setTasks(tasksData));
         })
         .catch((error) => {
-          console.error("Error fetching tasks after creation:", error);  // Log error if fetch fails
+          console.error("Error fetching tasks for team lead:", error);
+        });
+    } else {
+      fetchTasksTeam()
+        .then((tasksData) => {
+          dispatch(setTasks(tasksData));
+        })
+        .catch((error) => {
+          console.error("Error fetching tasks for team members:", error);
+        });
+    }
+  }, [dispatch, teamId, currentUser]);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      console.log("Tasks loaded from backend:", tasks);
+    }
+  }, [tasks]);
+
+
+  const handleTaskCreated = () => {
+    if (teamId) {
+      fetchTasksTeam(teamId)
+        .then((tasksData) => {
+          dispatch(setTasks(tasksData));
+        })
+        .catch((error) => {
         });
     }
   };
@@ -297,21 +332,163 @@ const TeamPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {tasks.map((task) => (
                     <Card key={task._id} sx={{ maxWidth: 345, mb: 2, position: "relative" }}>
+
+                      {/* Badge on the LEFT */}
                       <Badge
                         color={task.completed ? "success" : "error"}
                         variant="dot"
                         sx={{
                           position: "absolute",
                           top: 10,
-                          right: 10,
-                          zIndex: 1,
+                          left: 10,
+                          zIndex: 0,
                           "& .MuiBadge-dot": {
                             backgroundColor: task.completed ? green[500] : red[500],
                           },
                         }}
                       />
+
+                      {/* More options icon on the RIGHT if role = team-lead */}
+                      {currentUser?.role === "team-lead" && (
+                        <>
+                          <IconButton
+                            aria-label="more"
+                            aria-controls={`menu-${task._id}`}
+                            aria-haspopup="true"
+                            onClick={(e) => handleMenuOpen(e, task._id)}
+                            sx={{ position: "absolute", top: 5, right: 5 }}
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
+
+                          {selectedTaskId === task._id && (
+                            <Menu
+                              id={`menu-${task._id}`}
+                              anchorEl={anchorEl}
+                              open={Boolean(anchorEl) && selectedTaskId === task._id}
+                              onClose={handleClose}
+                              anchorOrigin={{
+                                vertical: "top",
+                                horizontal: "right",
+                              }}
+                              transformOrigin={{
+                                vertical: "top",
+                                horizontal: "right",
+                              }}
+                              PaperProps={{
+                                elevation: 3,
+                                sx: {
+                                  mt: 1,
+                                  minWidth: 180,
+                                  borderRadius: 2,
+                                },
+                              }}
+                            >
+                              <MenuItem
+                                onClick={() => { /* handle update */ handleClose(); }}
+                                sx={{ color: '#3b82f6' }} // أزرق
+                              >
+                                <EditIcon fontSize="small" sx={{ mr: 1, color: '#3b82f6' }} />
+                                Update
+                              </MenuItem>
+
+                              <MenuItem
+                                onClick={() => { /* handle delete */ handleClose(); }}
+                                sx={{ color: '#ef4444' }} 
+                              >
+                                <DeleteIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
+                                Delete
+                              </MenuItem>
+
+                              <MenuItem
+                                onClick={() => { /* handle toggle complete */ handleClose(); }}
+                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }} 
+                              >
+                                {task.completed ? (
+                                  <>
+                                    <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
+                                    Mark as Incomplete
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }} />
+                                    Mark as Complete
+                                  </>
+                                )}
+                              </MenuItem>
+
+                            </Menu>
+                          )}
+                        </>
+                      )}
+                      {currentUser?.role === "user" && (
+                        <>
+                          <IconButton
+                            aria-label="more"
+                            aria-controls={`menu-${task._id}`}
+                            aria-haspopup="true"
+                            onClick={(e) => handleMenuOpen(e, task._id)}
+                            sx={{ position: "absolute", top: 5, right: 5 }}
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
+
+                          {selectedTaskId === task._id && (
+                            <Menu
+                              id={`menu-${task._id}`}
+                              anchorEl={anchorEl}
+                              open={Boolean(anchorEl) && selectedTaskId === task._id}
+                              onClose={handleClose}
+                              anchorOrigin={{
+                                vertical: "top",
+                                horizontal: "right",
+                              }}
+                              transformOrigin={{
+                                vertical: "top",
+                                horizontal: "right",
+                              }}
+                              PaperProps={{
+                                elevation: 3,
+                                sx: {
+                                  mt: 1,
+                                  minWidth: 180,
+                                  borderRadius: 2,
+                                },
+                              }}
+                            >
+                             
+
+                              <MenuItem
+                                onClick={() => { /* handle toggle complete */ handleClose(); }}
+                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }} 
+                              >
+                                {task.completed ? (
+                                  <>
+                                    <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
+                                    Mark as Incomplete
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }} />
+                                    Mark as Complete
+                                  </>
+                                )}
+                              </MenuItem>
+
+                            </Menu>
+                          )}
+                        </>
+                      )}
+
                       <CardContent>
-                        <Typography variant="h6" color="textPrimary" gutterBottom>
+                        <Typography
+                          variant="h6"
+                          gutterBottom
+                          sx={{
+                            color: '#38bdf8',
+                            fontWeight: 'bold',
+                          }}
+                        >
                           {task.title}
                         </Typography>
                         <Typography variant="body2" color="textSecondary" paragraph>
@@ -323,7 +500,7 @@ const TeamPage = () => {
 
                         <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
                           <Typography variant="body2" color="textSecondary">
-                            Assigned to: {task.assignedTo}
+                            Assigned to: {task.assignedTo?.name ?? "Unassigned"}
                           </Typography>
                         </Box>
                       </CardContent>
@@ -334,6 +511,7 @@ const TeamPage = () => {
             </div>
           </>
         )}
+
 
       </div>
 
