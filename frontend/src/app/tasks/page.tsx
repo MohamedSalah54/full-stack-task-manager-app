@@ -26,11 +26,13 @@ import Loader from '@/loader/Loader';
 import { TaskFormData } from '@/interfaces/taskForm';
 import { Task } from '@/interfaces/task';
 import useAuth from '../../hooks/useAuth';
+import { useAppSelector } from '@/hooks/redux';
 
 export default function TasksPage() {
   const isAuthChecked = useAuth();
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
@@ -163,40 +165,47 @@ export default function TasksPage() {
           <Dashboard />
 
           {tasks.length === 0 ? (
-            <div className="absolute top-[80%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center space-y-2 
-                  max-[680px]:top-10 max-[680px]:right-4 max-[680px]:left-auto max-[680px]:-translate-x-0 max-[680px]:-translate-y-0">
-              <button
-                className="w-12 h-12 bg-blue-600 text-white text-3xl font-bold rounded-full flex items-center justify-center hover:bg-blue-700"
-                onClick={() => {
-                  setShowForm(true);
-                  setTaskToEdit(null);
-                  setTaskFormData({ title: '', description: '', dueDate: '', category: 'work' });
-                }}
-              >
-                +
-              </button>
-              <span className="text-xl font-semibold max-[680px]:hidden">
-                Add Task
-              </span>
-            </div>
+            currentUser?.role !== 'user' && (
+              <div className="absolute top-[80%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center space-y-2 
+          max-[680px]:top-10 max-[680px]:right-4 max-[680px]:left-auto max-[680px]:-translate-x-0 max-[680px]:-translate-y-0">
+                <button
+                  className="w-12 h-12 bg-blue-600 text-white text-3xl font-bold rounded-full flex items-center justify-center hover:bg-blue-700"
+                  onClick={() => {
+                    setShowForm(true);
+                    setTaskToEdit(null);
+                    setTaskFormData({ title: '', description: '', dueDate: '', category: 'work' });
+                  }}
+                >
+                  +
+                </button>
+                <span className="text-xl font-semibold max-[680px]:hidden">
+                  Add Task
+                </span>
+              </div>
+            )
           ) : (
-            <div className="absolute top-4 right-4">
-              <button
-                className="w-12 h-12 bg-blue-600 text-white text-3xl font-bold rounded-full flex items-center justify-center hover:bg-blue-700"
-                onClick={() => {
-                  setShowForm(true);
-                  setTaskToEdit(null);
-                  setTaskFormData({ title: '', description: '', dueDate: '', category: 'work' });
-                }}
-              >
-                +
-              </button>
-            </div>
+
+            currentUser?.role !== 'user' && (
+              <div className="absolute top-4 right-4">
+                <button
+                  className="w-12 h-12 bg-blue-600 text-white text-3xl font-bold rounded-full flex items-center justify-center hover:bg-blue-700"
+                  onClick={() => {
+                    setShowForm(true);
+                    setTaskToEdit(null);
+                    setTaskFormData({ title: '', description: '', dueDate: '', category: 'work' });
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            )
           )}
+            
 
 
 
-          {showForm && (
+
+          {currentUser?.role !== 'user' && showForm && (
             <TaskForm
               taskData={taskFormData}
               isEditing={!!taskToEdit}
@@ -207,25 +216,31 @@ export default function TasksPage() {
             />
           )}
 
+
           <TaskList
             tasks={filteredTasks}
             tooltipVisibleId={tooltipVisibleId}
             setTooltipVisible={setTooltipVisibleId}
+            currentUser={currentUser}
             onEditTask={(task) => {
-              setTaskToEdit(task);
-              setTaskFormData({
-                title: task.title,
-                description: task.description,
-                dueDate: task.dueDate,
-                category: task.category,
-              });
-              setShowForm(true);
-              setTooltipVisibleId(null);
+              if (currentUser?.role !== 'user') {
+                setTaskToEdit(task);
+                setTaskFormData({
+                  title: task.title,
+                  description: task.description,
+                  dueDate: task.dueDate,
+                  category: task.category,
+                });
+                setShowForm(true);
+                setTooltipVisibleId(null);
+              }
             }}
             onDeleteTask={(id) => {
-              setTaskToDelete(id);
-              setIsDeleteModalVisible(true);
-              setTooltipVisibleId(null);
+              if (currentUser?.role !== 'user') {
+                setTaskToDelete(id);
+                setIsDeleteModalVisible(true);
+                setTooltipVisibleId(null);
+              }
             }}
             onToggleComplete={(task) => {
               toggleComplete(task);
@@ -233,12 +248,13 @@ export default function TasksPage() {
             }}
           />
 
-          {isDeleteModalVisible && taskToDelete && (
+          {currentUser?.role !== 'user' && isDeleteModalVisible && taskToDelete && (
             <DeleteModal
               onCancel={() => setIsDeleteModalVisible(false)}
               onConfirm={() => deleteTaskHandler(taskToDelete)}
             />
           )}
+
         </div>
       )}
     </>

@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { TaskItemProps } from '@/interfaces/taskItem';
 import { FaEllipsisV, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
-import { toggleComplete } from '@/redux/tasksActions'; 
-import { toast } from 'react-hot-toast'; 
+import { toggleComplete } from '@/redux/tasksActions';
+import { toast } from 'react-hot-toast';
+import { useAppSelector } from '@/hooks/redux';
+import { RootState } from '@/redux/store';
 
 const TaskItem: React.FC<TaskItemProps> = ({
   task,
@@ -14,14 +16,15 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onDelete,
 }) => {
   const [currentTask, setCurrentTask] = useState(task);
-  const dispatch = useDispatch(); 
+  const dispatch = useDispatch();
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
     setCurrentTask(task);
   }, [task]);
 
   const handleToggleComplete = () => {
-    dispatch(toggleComplete(task._id)); 
+    dispatch(toggleComplete(task._id));
     setCurrentTask(prevTask => ({
       ...prevTask,
       completed: !prevTask.completed,
@@ -40,25 +43,29 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
       {tooltipVisible && (
         <div className="absolute top-8 right-2 bg-white shadow-md p-2 rounded-md space-y-2 w-40">
-          <button
-            onClick={onEdit}
-            className="flex items-center text-blue-600 hover:bg-gray-100 px-3 py-2 w-full text-left rounded"
-          >
-            <FaEdit className="mr-2" /> Update
-          </button>
+          {currentUser.role !== 'user' && (
+            <>
+              <button
+                onClick={onEdit}
+                className="flex items-center text-blue-600 hover:bg-gray-100 px-3 py-2 w-full text-left rounded"
+              >
+                <FaEdit className="mr-2" /> Update
+              </button>
 
-          <button
-            onClick={onDelete}
-            className="flex items-center text-red-600 hover:bg-gray-100 px-3 py-2 w-full text-left rounded"
-          >
-            <FaTrash className="mr-2" /> Delete
-          </button>
+              <button
+                onClick={onDelete}
+                className="flex items-center text-red-600 hover:bg-gray-100 px-3 py-2 w-full text-left rounded"
+              >
+                <FaTrash className="mr-2" /> Delete
+              </button>
+            </>
+          )}
+
 
           <button
             onClick={handleToggleComplete}
-            className={`flex items-center hover:bg-gray-100 px-3 py-2 w-full text-left rounded ${
-              currentTask.completed ? 'text-red-600' : 'text-green-600'
-            }`}
+            className={`flex items-center hover:bg-gray-100 px-3 py-2 w-full text-left rounded ${currentTask.completed ? 'text-red-600' : 'text-green-600'
+              }`}
           >
             {currentTask.completed ? (
               <>
@@ -74,9 +81,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
       )}
 
       <div
-        className={`absolute top-2 left-2 w-3 h-3 ${
-          currentTask.completed ? 'bg-green-500' : 'bg-red-500'
-        } rounded-full`}
+        className={`absolute top-2 left-2 w-3 h-3 ${currentTask.completed ? 'bg-green-500' : 'bg-red-500'
+          } rounded-full`}
       ></div>
 
       <h3 className="text-xl font-semibold">{currentTask.title}</h3>

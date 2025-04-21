@@ -42,7 +42,6 @@ export const createTask = async (taskData: TaskCreateData, creatorId: string): P
   }
 };
 
-// تعديل في fetchTasksTeam
 export const fetchTasksTeam = async (): Promise<Task[]> => {
   try {
     const response = await API.get(`/tasks`, {
@@ -87,7 +86,7 @@ export const toggleTaskComplete = async (id: string): Promise<Task> => {
 
 export const updateTask = async (_id: string, updatedData: TaskUpdateData): Promise<Task> => {
   try {
-    const response = await API.patch(`/tasks/${_id}`, updatedData, { withCredentials: true });  // إضافة withCredentials هنا
+    const response = await API.patch(`/tasks/${_id}`, updatedData, { withCredentials: true });  
     return response.data;
   } catch (error: any) {
     toast.error("Failed to Update Task");
@@ -97,7 +96,7 @@ export const updateTask = async (_id: string, updatedData: TaskUpdateData): Prom
 
 export const deleteTask = async (_id: string): Promise<any> => {
   try {
-    const response = await API.delete(`/tasks/${_id}`, { withCredentials: true }); // إضافة withCredentials هنا
+    const response = await API.delete(`/tasks/${_id}`, { withCredentials: true }); 
     return response.data;
   } catch (error) {
     toast.error("Failed to Delete Task");

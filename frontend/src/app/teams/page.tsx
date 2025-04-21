@@ -1,23 +1,23 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { fetchTeams, removeTeam } from "../../redux/teamSlice";
 import { RootState } from "../../redux/store";
 import { Team } from "../../interfaces/team";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import CreateTeamModal from "../../components/teams/dashboard/CreateTeamModal";
+import CreateTeamModal from "../../components/teams/dashboard/team/CreateTeamModal";
 import { useAppSelector } from "@/hooks/redux";
 import { Edit, Delete, Add } from "@mui/icons-material";
-import DeleteTeamModal from "@/components/teams/dashboard/DeleteTeamModal";
+import DeleteTeamModal from "@/components/teams/dashboard/team/DeleteTeamModal";
 import Loader from "@/loader/Loader";
-import UpdateTeamModal from "@/components/teams/dashboard/UpdateTeamModal ";
+import UpdateTeamModal from "@/components/teams/dashboard/team/UpdateTeamModal ";
 import { updateTeam } from "@/lib/teams";
-import CreateTaskModal from "../../components/teams/dashboard/CreateTaskModal";
+import CreateTaskModal from "../../components/teams/dashboard/tasks/CreateTaskModal";
 import { Card, CardContent, Typography, Badge, Box, CircularProgress } from "@mui/material";
 import { green, red } from "@mui/material/colors";
-import { fetchAllTasksForTeamLead, fetchTasksTeam } from "@/lib/tasks";
-import { setTasks } from "@/redux/taskSlice";
+import { deleteTask, fetchAllTasksForTeamLead, fetchTasksTeam, toggleTaskComplete } from "@/lib/tasks";
+import { setTasks, updateTask } from "@/redux/taskSlice";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -26,6 +26,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import UpdateTaskModal from "@/components/teams/dashboard/tasks/UpdateTaskModal";
+import { Task } from "@/interfaces/taskList";
+import DeleteTaskModal from "@/components/teams/dashboard/tasks/DeleteTaskModal";
 
 const TeamPage = () => {
   const dispatch = useDispatch();
@@ -45,12 +48,18 @@ const TeamPage = () => {
   const [isClient, setIsClient] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showCreateTaskModal, setCreateTaskModal] = useState(false);
+  const [showUpdateTaskModal, setShowUpdateTaskModal] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
 
 
 
+
+  // CRUD Tasks
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -64,6 +73,26 @@ const TeamPage = () => {
     setSelectedTaskId(null);
   };
 
+
+
+
+
+  const handleToggle = async (taskId: string) => {
+    try {
+      const updatedTask = await toggleTaskComplete(taskId);
+
+      dispatch(updateTask(updatedTask));
+
+      if (updatedTask.completed) {
+        toast.success("Task marked as completed!");
+      } else {
+        toast.success("Task marked as incomplete!");
+      }
+
+    } catch (error) {
+      toast.error("Something went wrong while toggling task status");
+    }
+  };
 
 
   useEffect(() => {
@@ -109,7 +138,44 @@ const TeamPage = () => {
     }
   };
 
+  const handleTaskUpdated = async () => {
+    if (selectedTask) {
+      try {
+        dispatch(updateTask(selectedTask));
+      } catch (err) {
+        toast.error("Failed to update task in Redux.");
+      }
+    }
+  };
 
+  const deleteTaskHandler = async () => {
+    if (!taskId) {
+      toast.error("No task selected"); 
+      return;
+    }
+
+    try {
+      await deleteTask(taskId);
+
+      toast.success("Task deleted successfully!");
+
+      const updatedTasks = await fetchAllTasksForTeamLead(teamId);
+      dispatch(setTasks(updatedTasks));
+
+      setShowDeleteTaskModal(false);
+      setTaskId(null);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Failed to delete task");
+    }
+  };
+
+
+
+
+
+
+  // CRUD Teams
   const handleConfirmDelete = async () => {
     try {
       await dispatch(removeTeam(teams[0]._id));
@@ -385,34 +451,56 @@ const TeamPage = () => {
                               }}
                             >
                               <MenuItem
-                                onClick={() => { /* handle update */ handleClose(); }}
-                                sx={{ color: '#3b82f6' }} // أزرق
+                                onClick={() => {
+                                  setSelectedTask(task);
+                                  setShowUpdateTaskModal(true);
+                                  handleClose();
+                                }}
+                                sx={{ color: '#3b82f6' }}
                               >
                                 <EditIcon fontSize="small" sx={{ mr: 1, color: '#3b82f6' }} />
                                 Update
                               </MenuItem>
 
+
                               <MenuItem
-                                onClick={() => { /* handle delete */ handleClose(); }}
-                                sx={{ color: '#ef4444' }} 
+                                onClick={() => {
+                                  setTaskId(task._id); // مهم جدًا تخزن ID المهمة هنا
+                                  setShowDeleteTaskModal(true);
+                                  handleClose();
+                                }}
+                                sx={{ color: '#ef4444' }}
                               >
                                 <DeleteIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
                                 Delete
                               </MenuItem>
 
+
                               <MenuItem
                                 onClick={() => { /* handle toggle complete */ handleClose(); }}
-                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }} 
+                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }}
                               >
                                 {task.completed ? (
                                   <>
-                                    <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
-                                    Mark as Incomplete
+                                    <button onClick={() => handleToggle(task._id)}>
+                                      <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }}
+
+                                      />
+                                      Mark as Incomplete
+                                    </button>
+
                                   </>
                                 ) : (
                                   <>
-                                    <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }} />
-                                    Mark as Complete
+                                    <button
+                                      onClick={() => handleToggle(task._id)}
+                                    >
+                                      <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }}
+
+                                      />
+                                      Mark as Complete
+                                    </button>
+
                                   </>
                                 )}
                               </MenuItem>
@@ -456,21 +544,33 @@ const TeamPage = () => {
                                 },
                               }}
                             >
-                             
+
 
                               <MenuItem
                                 onClick={() => { /* handle toggle complete */ handleClose(); }}
-                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }} 
+                                sx={{ color: task.completed ? '#ef4444' : '#10b981' }}
                               >
                                 {task.completed ? (
                                   <>
-                                    <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
-                                    Mark as Incomplete
+                                    <button onClick={() => handleToggle(task._id)}>
+                                      <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }}
+
+                                      />
+                                      Mark as Incomplete
+                                    </button>
+
                                   </>
                                 ) : (
                                   <>
-                                    <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }} />
-                                    Mark as Complete
+                                    <button
+                                      onClick={() => handleToggle(task._id)}
+                                    >
+                                      <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }}
+
+                                      />
+                                      Mark as Complete
+                                    </button>
+
                                   </>
                                 )}
                               </MenuItem>
@@ -544,6 +644,27 @@ const TeamPage = () => {
 
         />
       )}
+      {/* Update Task Modal */}
+      {showUpdateTaskModal && selectedTask && (
+        <UpdateTaskModal
+          teamId={teamId}
+          onClose={() => {
+            setShowUpdateTaskModal(false);
+            setSelectedTask(null);
+          }}
+          initialData={selectedTask}
+          onTaskUpdated={handleTaskUpdated}
+        />
+      )}
+      {/* Delete task modal */}
+      {showDeleteTaskModal && (
+        <DeleteTaskModal
+          onCancel={() => setShowDeleteTaskModal(false)}
+          onConfirm={deleteTaskHandler}
+        />
+      )}
+
+
 
     </div>
   );

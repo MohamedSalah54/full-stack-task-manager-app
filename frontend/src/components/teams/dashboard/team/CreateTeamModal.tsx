@@ -2,11 +2,11 @@
 import React, { useState, Fragment, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Dialog, Transition } from '@headlessui/react';
-import { CreateTeamDto } from '../../../interfaces/team';
-import { RootState } from '../../../redux/store';
+import { CreateTeamDto } from '../../../../interfaces/team';
+import { RootState } from '../../../../redux/store';
 import toast from 'react-hot-toast';
-import { addTeam, fetchTeams } from '../../../redux/teamSlice';
-import { checkUserInTeam } from '../../../lib/teams';
+import { addTeam, fetchTeams } from '../../../../redux/teamSlice';
+import { checkUserInTeam } from '../../../../lib/teams';
 import Tooltip from '@mui/material/Tooltip';
 
 

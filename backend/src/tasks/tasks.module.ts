@@ -5,11 +5,13 @@ import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { UserSchema } from 'src/auth/schemas/user.schema';
 import { TeamModule } from 'src/teams/team.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Task.name, schema: TaskSchema }]),
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), 
+    NotificationsModule,
     TeamModule
 
   ],

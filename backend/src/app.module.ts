@@ -6,6 +6,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/user.module';
 import {ProfileModule} from './profile/profile.module';
 import { TeamModule } from './teams/team.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 
 @Module({
@@ -23,7 +24,8 @@ import { TeamModule } from './teams/team.module';
     TasksModule,
     UsersModule,
     ProfileModule,
-    TeamModule
+    TeamModule,
+    NotificationsModule
     
   ],
 })

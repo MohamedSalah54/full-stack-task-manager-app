@@ -1,4 +1,5 @@
 import { IsString, IsBoolean, IsEnum, IsDateString, IsNotEmpty, IsOptional, IsMongoId } from 'class-validator';
+import { Types } from 'mongoose';
 
 export enum TaskCategory {
   WORK = "work",
@@ -56,7 +57,7 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsMongoId({ message: 'assignedTo must be a valid MongoDB ObjectId' })
-  assignedTo?: string; 
+  assignedTo?: Types.ObjectId; 
 }
 
 

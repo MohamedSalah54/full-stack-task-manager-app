@@ -14,5 +14,6 @@ export interface TaskItemProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  currentUser: { role: string }
   
 }

@@ -8,12 +8,16 @@ import { createTask, fetchAllTasksForTeamLead } from "@/lib/tasks";
 import toast from "react-hot-toast";
 import { useAppSelector, useAppDispatch } from "@/hooks/redux";
 import { setTasks } from "@/redux/taskSlice"; 
+import { Task } from "@/interfaces/taskList";
 
 interface Props {
-  onClose: () => void;
-  teamId: string;
-  onTaskCreated: () => void;
-}
+    onClose: () => void;
+    teamId: string;
+    onTaskCreated?: () => void;
+    onTaskUpdated?: () => void;
+    initialData?: Task; 
+  }
+  
 
 export default function CreateTaskModal({ onClose, onTaskCreated, teamId }: Props) {
   const [formData, setFormData] = useState({
@@ -25,7 +29,7 @@ export default function CreateTaskModal({ onClose, onTaskCreated, teamId }: Prop
   });
 
   const [members, setMembers] = useState<any[]>([]);
-  const dispatch = useAppDispatch(); // استخدام الـ dispatch
+  const dispatch = useAppDispatch(); 
   const creatorId = useAppSelector((state) => {
     return state.user?.id;
   });
@@ -59,12 +63,10 @@ export default function CreateTaskModal({ onClose, onTaskCreated, teamId }: Prop
       toast.success("Task created successfully!");
       onClose();
 
-      // استدعاء دالة onTaskCreated بعد إنشاء المهمة
       onTaskCreated();
 
-      // بعد إنشاء المهمة، استدعاء الـ fetch لإحضار المهام المحدثة
-      const updatedTasks = await fetchAllTasksForTeamLead(teamId);  // تأكد من استيراد دالة fetchTasksForTeam
-      dispatch(setTasks(updatedTasks));  // تحديث المهام في الـ Redux
+      const updatedTasks = await fetchAllTasksForTeamLead(teamId);  
+      dispatch(setTasks(updatedTasks)); 
     } catch (err) {
       toast.error("Failed to create task.");
     }
@@ -102,6 +104,7 @@ export default function CreateTaskModal({ onClose, onTaskCreated, teamId }: Prop
                             type="date"
                             name="dueDate"
                             onChange={handleChange}
+                            placeholder="Due date"
                             required
                             className="w-full px-3 py-2 rounded-lg bg-gray-100 shadow-sm focus:ring-2 focus:ring-blue-500"
                         />

@@ -5,6 +5,7 @@ import { Task } from './schemas/task.schema';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
 import { User } from '../auth/schemas/user.schema';
 import { Team } from 'src/teams/schema/team.schema';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 
 
@@ -14,7 +15,48 @@ export class TasksService {
     @InjectModel(Task.name) private readonly taskModel: Model<Task>,
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Team') private readonly teamModel: Model<Team>,
+    private readonly notificationsService: NotificationsService,
+
     ) { }
+    // async create(createTaskDto: CreateTaskDto, creatorId: string): Promise<Task> {
+    //   const creator = await this.userModel.findById(creatorId);
+    //   if (!creator) {
+    //     throw new NotFoundException('Creator not found');
+    //   }
+    
+    //   const creatorObjId = new Types.ObjectId(creatorId);
+    //   const assignedToId = new Types.ObjectId(createTaskDto.assignedTo || creatorId);
+    
+    //   const team = await this.teamModel.findOne({ teamLeader: creatorObjId });
+    //   if (!team) {
+    //     throw new NotFoundException(`No team found for the team leader: ${creatorId}`);
+    //   }
+    
+    //   const newTask = new this.taskModel({
+    //     ...createTaskDto,
+    //     createdBy: creatorObjId,
+    //     assignedTo: assignedToId,
+    //     completed: false,
+    //     teamId: team._id, 
+    //   });
+    
+    //   const savedTask = await newTask.save();
+    
+    //   await this.userModel.findByIdAndUpdate(assignedToId, {
+    //     $inc: {
+    //       'tasks.allTasks': 1,
+    //       'tasks.completedTasks': 0,
+    //       'tasks.incompleteTasks': 1,
+    //     },
+    //   });
+    
+    //   await this.teamModel.findByIdAndUpdate(team._id, {
+    //     $addToSet: { tasks: savedTask._id },
+    //   });
+    
+    //   return savedTask;
+    // }
+    
     async create(createTaskDto: CreateTaskDto, creatorId: string): Promise<Task> {
       const creator = await this.userModel.findById(creatorId);
       if (!creator) {
@@ -24,25 +66,21 @@ export class TasksService {
       const creatorObjId = new Types.ObjectId(creatorId);
       const assignedToId = new Types.ObjectId(createTaskDto.assignedTo || creatorId);
     
-      // 🧠 نحصل على الفريق الخاص بالـ team-lead
       const team = await this.teamModel.findOne({ teamLeader: creatorObjId });
       if (!team) {
         throw new NotFoundException(`No team found for the team leader: ${creatorId}`);
       }
     
-      // ✅ إنشاء المهمة وربطها بالفريق
       const newTask = new this.taskModel({
         ...createTaskDto,
         createdBy: creatorObjId,
         assignedTo: assignedToId,
         completed: false,
-        teamId: team._id, // ✅ إضافة teamId هنا
+        teamId: team._id,
       });
     
-      // 💾 حفظ المهمة في الداتابيز
       const savedTask = await newTask.save();
     
-      // 🔄 تحديث عداد المهام في المستخدم المُكلف
       await this.userModel.findByIdAndUpdate(assignedToId, {
         $inc: {
           'tasks.allTasks': 1,
@@ -51,10 +89,32 @@ export class TasksService {
         },
       });
     
-      // ➕ ربط المهمة بالفريق
       await this.teamModel.findByIdAndUpdate(team._id, {
         $addToSet: { tasks: savedTask._id },
       });
+    
+      // ✅ Send notification if creator is a team-lead and assigned to someone else
+      if (creator.role === 'team-lead' && assignedToId.toString() !== creatorId) {
+        const notificationMessage = `You have been assigned a new task: ${savedTask.title} from ${creator.name}`;
+    
+        // 1. Create notification document
+        const notification = await this.notificationsService.create({
+          userId: assignedToId.toString(),
+          message: notificationMessage,
+        });
+    
+        // 2. Push notification to user's notifications array
+        await this.userModel.findByIdAndUpdate(assignedToId, {
+          $push: {
+            notifications: {
+              _id: notification._id,
+              message: notification.message,
+              createdAt: notification.createdAt,
+              read: false,
+            },
+          },
+        });
+      }
     
       return savedTask;
     }
@@ -131,7 +191,6 @@ export class TasksService {
             _id: { $in: team.tasks },
           },
         },
-        // تحويل assignedTo من string إلى ObjectId
         {
           $addFields: {
             assignedTo: { $toObjectId: "$assignedTo" },
@@ -148,12 +207,12 @@ export class TasksService {
         {
           $unwind: {
             path: '$assignedTo',
-            preserveNullAndEmptyArrays: true, // لا حذف المهام التي لا يوجد لها Assigned
+            preserveNullAndEmptyArrays: true, 
           },
         },
         {
           $match: {
-            'assignedTo._id': { $exists: true }, // تأكد من أن assignedTo يحتوي على _id صحيح
+            'assignedTo._id': { $exists: true }, 
           },
         },
         {
@@ -208,153 +267,240 @@ export class TasksService {
     async toggleComplete(id: string, userId: string): Promise<Task> {
       console.log('🔄 Toggling completion for task:', id);
       console.log('👤 Requested by user ID:', userId);
-    
+  
       const task = await this.taskModel.findById(id).exec();
       if (!task) {
-        throw new NotFoundException('Task not found');
+          throw new NotFoundException('Task not found');
       }
-    
+  
       const user = await this.userModel.findById(userId).exec();
       if (!user) {
-        throw new UnauthorizedException('User not found');
+          throw new UnauthorizedException('User not found');
       }
-    
-      const isOwner = task.assignedTo?.toString() === userId;
+  
+      const isOwner = (task.assignedTo as Types.ObjectId)?.toString() === userId;
       const isTeamLead = user.role === 'team-lead' && task.teamId?.toString() === user.team?.toString();
-    
+  
       if (!isOwner && !isTeamLead) {
-        throw new UnauthorizedException('You are not authorized to toggle this task');
+          throw new UnauthorizedException('You are not authorized to toggle this task');
       }
-    
+  
       const wasCompleted = task.completed;
       task.completed = !task.completed;
       await task.save();
-    
-      // ✅ تحديث عدادات اليوزر اللي متسند له التاسك فعلياً
+  
       if (task.assignedTo) {
-        const assignedUserId = task.assignedTo.toString();
-    
-        await this.userModel.findByIdAndUpdate(
-          assignedUserId,
+          const assignedUserId = (task.assignedTo as Types.ObjectId).toString();
+  
+          await this.userModel.findByIdAndUpdate(
+              assignedUserId,
+              {
+                  $inc: {
+                      'tasks.completedTasks': task.completed ? 1 : -1,
+                      'tasks.incompleteTasks': task.completed ? -1 : 1,
+                  },
+              },
+              { new: true }
+          );
+      }
+  
+      // Check if the status changed from incomplete to complete
+      if (wasCompleted === false && task.completed === true) {
+          const creator = await this.userModel.findById(task.createdBy).exec();
+          if (creator) {
+              const message = `Task "${task.title}" has been marked as complete by ${user.name}`;
+  
+              // Send notification to the creator or team lead
+              await this.notificationsService.create({
+                  userId: (creator._id as Types.ObjectId).toString(),
+                  message,
+              });
+  
+              creator.notifications.push({
+                  message,
+                  isRead: false,
+                  date: new Date(),
+                  createdAt: new Date(),
+              });
+  
+              await creator.save();
+          }
+  
+          // If the creator is not found, you can notify the team lead (optional)
+          if (!creator && task.teamId) {
+              const teamLead = await this.userModel.findOne({ role: 'team-lead', team: task.teamId }).exec();
+              if (teamLead) {
+                  const message = `Task "${task.title}" has been marked as complete by ${user.name}`;
+  
+                  // Send notification to the team lead
+                  await this.notificationsService.create({
+                      userId: (teamLead._id as Types.ObjectId).toString(),
+                      message,
+                  });
+  
+                  teamLead.notifications.push({
+                      message,
+                      isRead: false,
+                      date: new Date(),
+                      createdAt: new Date(),
+                  });
+  
+                  await teamLead.save();
+              }
+          }
+      }
+  
+      const populatedTask = await this.taskModel.aggregate([
           {
-            $inc: {
-              'tasks.completedTasks': task.completed ? 1 : -1,
-              'tasks.incompleteTasks': task.completed ? -1 : 1,
-            },
+              $match: { _id: new mongoose.Types.ObjectId(id) }
           },
-          { new: true }
-        );
-      }
-    
-      return task;
-    }
-    
-  
-  
-  
-  
-  
-
-
-  async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
-  
-    const taskId = new Types.ObjectId(id);  
-    const userObjectId = new Types.ObjectId(userId);  
-  
-  
-    const oldTask = await this.taskModel.findOne({ _id: taskId, createdBy: userObjectId }).exec();
-    if (!oldTask) {
-      throw new NotFoundException('Task not found or unauthorized');
-    }
-  
-    const oldTeam = await this.teamModel.findById(oldTask.teamId).exec();
-  
-    const updatedTask = await this.taskModel.findOneAndUpdate(
-      { _id: taskId, createdBy: userObjectId },
-      updateTaskDto,
-      { new: true }
-    ).exec();
-  
-    if (!updatedTask) {
-      throw new NotFoundException('Task not found after update');
-    }
-  
-    if (updateTaskDto.assignedTo && updateTaskDto.assignedTo !== oldTask.assignedTo?.toString()) {
-  
-      if (oldTask.assignedTo) {
-        const oldAssignedUser = await this.userModel.findById(oldTask.assignedTo).exec();
-        if (oldAssignedUser && oldAssignedUser.tasks) {
-          if (oldAssignedUser.tasks.allTasks > 0) {
-            oldAssignedUser.tasks.allTasks -= 1; 
-          }
-          if (oldAssignedUser.tasks.completedTasks > 0 && oldTask.completed) {
-            oldAssignedUser.tasks.completedTasks -= 1; 
-          }
-          if (oldAssignedUser.tasks.incompleteTasks > 0 && !oldTask.completed) {
-            oldAssignedUser.tasks.incompleteTasks -= 1; 
-          }
-          await oldAssignedUser.save();
-        } else {
-        }
-      }
-  
-      const newAssignedUser = await this.userModel.findById(updateTaskDto.assignedTo).exec();
-      if (newAssignedUser && newAssignedUser.tasks) {
-        newAssignedUser.tasks.allTasks += 1;
-        if (updateTaskDto.completed) {
-          newAssignedUser.tasks.completedTasks += 1; 
-        } else {
-          newAssignedUser.tasks.incompleteTasks += 1; 
-        }
-        await newAssignedUser.save();
-      } else {
-      }
-    } else {
-    }
-  
-    if (updateTaskDto.teamId && updateTaskDto.teamId !== oldTask.teamId.toString()) {
-  
-      if (oldTeam && oldTeam.tasks) {
-        const taskIndex = oldTeam.tasks.indexOf(oldTask._id);
-        if (taskIndex !== -1) {
-          oldTeam.tasks.splice(taskIndex, 1);
-          await oldTeam.save();
-        } else {
-        }
-      }
-  
-      const newTeam = await this.teamModel.findById(updateTaskDto.teamId).exec();
-      if (newTeam) {
-        newTeam.tasks.push(updatedTask._id); 
-        await newTeam.save();
-      } else {
-      }
-    } else {
-    }
-  
-    if (
-      updateTaskDto.completed !== undefined &&
-      updateTaskDto.completed !== oldTask.completed
-    ) {
-  
-      const assignedUser = await this.userModel.findById(oldTask.assignedTo);
-      if (!assignedUser) {
-        throw new NotFoundException('Assigned user not found');
-      }
-  
-      await this.userModel.findByIdAndUpdate(
-        assignedUser._id,
-        {
-          $inc: {
-            'tasks.completedTasks': updateTaskDto.completed ? 1 : -1,
-            'tasks.incompleteTasks': updateTaskDto.completed ? -1 : 1,
+          {
+              $addFields: {
+                  assignedTo: { $toObjectId: "$assignedTo" },
+              },
           },
-        }
-      );
-    }
+          {
+              $lookup: {
+                  from: 'users',
+                  localField: 'assignedTo',
+                  foreignField: '_id',
+                  as: 'assignedTo',
+              },
+          },
+          {
+              $unwind: {
+                  path: '$assignedTo',
+                  preserveNullAndEmptyArrays: true, 
+              },
+          },
+          {
+              $project: {
+                  title: 1,
+                  description: 1,
+                  category: 1,
+                  dueDate: 1,
+                  completed: 1,
+                  'assignedTo.name': 1,
+                  'assignedTo.email': 1,
+                  'assignedTo.image': 1,
+              },
+          },
+      ]);
   
-    return updatedTask;
+      if (populatedTask.length === 0) {
+          throw new NotFoundException('Task not found');
+      }
+  
+      return populatedTask[0];
   }
+  
+    
+    
+
+    async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
+      const taskId = new Types.ObjectId(id);  
+      const userObjectId = new Types.ObjectId(userId);  
+  
+      const oldTask = await this.taskModel.findOne({ _id: taskId, createdBy: userObjectId }).exec();
+      if (!oldTask) {
+          throw new NotFoundException('Task not found or unauthorized');
+      }
+  
+      const oldTeam = await this.teamModel.findById(oldTask.teamId).exec();
+  
+      if ((updateTaskDto.assignedTo as Types.ObjectId).toString() ) {
+          updateTaskDto.assignedTo = new Types.ObjectId(updateTaskDto.assignedTo);
+      }
+  
+      const updatedTask = await this.taskModel.findOneAndUpdate(
+          { _id: taskId, createdBy: userObjectId },
+          updateTaskDto,
+          { new: true }
+      ).exec();
+  
+      if (!updatedTask) {
+          throw new NotFoundException('Task not found after update');
+      }
+  
+      
+      if (
+        updateTaskDto.assignedTo &&
+        updateTaskDto.assignedTo.toString() !== (oldTask.assignedTo as Types.ObjectId)?.toString()
+      ) {
+        // ✅ OLD assigned user logic...
+        if (oldTask.assignedTo) {
+          const oldAssignedUser = await this.userModel.findById(oldTask.assignedTo).exec();
+          if (oldAssignedUser && oldAssignedUser.tasks) {
+            if (oldAssignedUser.tasks.allTasks > 0) oldAssignedUser.tasks.allTasks -= 1;
+            if (oldAssignedUser.tasks.completedTasks > 0 && oldTask.completed) oldAssignedUser.tasks.completedTasks -= 1;
+            if (oldAssignedUser.tasks.incompleteTasks > 0 && !oldTask.completed) oldAssignedUser.tasks.incompleteTasks -= 1;
+            await oldAssignedUser.save();
+          }
+        }
+      
+        const newAssignedUser = await this.userModel.findById(updateTaskDto.assignedTo).exec();
+        if (newAssignedUser && newAssignedUser.tasks) {
+          newAssignedUser.tasks.allTasks += 1;
+          if (updateTaskDto.completed) newAssignedUser.tasks.completedTasks += 1;
+          else newAssignedUser.tasks.incompleteTasks += 1;
+      
+          const taskTitle = updatedTask.title;
+          const creator = await this.userModel.findById(userId).exec();
+          const message = `You have been assigned to a new task "${taskTitle}" by ${creator?.name || 'Team Lead'}`;
+                    const notification = await this.notificationsService.create({
+            userId: (newAssignedUser._id as Types.ObjectId).toString(),
+            message,
+          });
+      
+          newAssignedUser.notifications.push({
+            _id: notification._id,
+            message,
+            isRead: false,
+            date: notification.date,
+            createdAt: notification.createdAt,
+          });
+      
+          await newAssignedUser.save();
+        }
+      }
+      
+  
+      if (updateTaskDto.teamId && updateTaskDto.teamId !== oldTask.teamId.toString()) {
+          if (oldTeam && oldTeam.tasks) {
+              const taskIndex = oldTeam.tasks.indexOf(oldTask._id);
+              if (taskIndex !== -1) {
+                  oldTeam.tasks.splice(taskIndex, 1);
+                  await oldTeam.save();
+              }
+          }
+  
+          const newTeam = await this.teamModel.findById(updateTaskDto.teamId).exec();
+          if (newTeam) {
+              newTeam.tasks.push(updatedTask._id); 
+              await newTeam.save();
+          }
+      }
+  
+      if (updateTaskDto.completed !== undefined && updateTaskDto.completed !== oldTask.completed) {
+          const assignedUser = await this.userModel.findById(oldTask.assignedTo);
+          if (!assignedUser) {
+              throw new NotFoundException('Assigned user not found');
+          }
+  
+          await this.userModel.findByIdAndUpdate(
+              assignedUser._id,
+              {
+                  $inc: {
+                      'tasks.completedTasks': updateTaskDto.completed ? 1 : -1,
+                      'tasks.incompleteTasks': updateTaskDto.completed ? -1 : 1,
+                  },
+              }
+          );
+      }
+  
+      return updatedTask;
+  }
+  
   
   
   

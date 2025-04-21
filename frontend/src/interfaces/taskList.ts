@@ -13,4 +13,5 @@ export interface TaskListProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onToggleComplete: (task: Task) => void;
+  currentUser: { role: string }
 }
