@@ -1,4 +1,5 @@
 export interface Member {
+  position: ReactNode;
   _id: string;
   name: string;
   email: string;

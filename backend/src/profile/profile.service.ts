@@ -1,6 +1,6 @@
-import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Profile } from './schema/profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -30,7 +30,16 @@ export class ProfileService {
   
 
   async getProfileByUserId(userId: string): Promise<Profile | null> {
-    return this.profileModel.findOne({ userId }).exec();
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid userId format');
+    }
+    
+    const profile = await this.profileModel.findOne({ userId: new Types.ObjectId(userId) }).exec();
+    
+    if (!profile) {
+      throw new NotFoundException(`Profile with userId ${userId} not found`);
+    }
+    return profile;
   }
 
   async updateProfileForAdmin(
@@ -109,11 +118,24 @@ export class ProfileService {
       throw new NotFoundException('Profile not found');
     }
   
+    const userUpdates: Partial<{ image: string; bio: string; position: string }> = {};
+
     if (dto.profileImage) {
-      await this.userService.updateUser(userId, {
-        image: dto.profileImage, 
-      });
+      userUpdates.image = dto.profileImage;
     }
+    
+    if (dto.bio) {
+      userUpdates.bio = dto.bio;
+    }
+    
+    if (dto.position) {
+      userUpdates.position = dto.position;
+    }
+    
+    if (Object.keys(userUpdates).length > 0) {
+      await this.userService.updateUser(userId, userUpdates);
+    }
+    
   
     return profile;
   }

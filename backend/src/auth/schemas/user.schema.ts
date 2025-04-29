@@ -16,14 +16,7 @@ export class User extends Document {
   @Prop({ required: true })
   password: string;
 
-  @Prop()
-  linkedinUrl: string;
 
-  @Prop()
-  linkedinPhoto: string;
-
-  @Prop()
-  linkedinBio: string;
 
   @Prop()
   name: string;
@@ -54,10 +47,16 @@ export class User extends Document {
   };
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  teamLeader: Types.ObjectId; 
+  teamLeader: Types.ObjectId | null; 
 
   @Prop({ type: Types.ObjectId, ref: 'Team' })
-  team: Types.ObjectId;
+  team: Types.ObjectId | null;
+
+  @Prop()
+  teamName: string;
+
+  @Prop()
+  teamLeaderName: string;
 
   @Prop()
   position: string;

@@ -12,6 +12,7 @@ import { BiObjectsHorizontalLeft } from "react-icons/bi";
 import GroupIcon from '@mui/icons-material/Group';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import WorkIcon from '@mui/icons-material/Work';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
@@ -29,7 +30,6 @@ export default function ProfilePage() {
     }
   }, [dispatch, userId]);
   
-  // بعد رفع الصورة أو تحديث البروفايل
   const handleUpdateProfile = async (data: UpdateProfileDto) => {
     if (!userId) {
       console.error("User ID is undefined!");
@@ -61,27 +61,28 @@ export default function ProfilePage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-lg text-red-500 font-semibold">{error}</div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center h-[60vh]">
+  //       <div className="text-lg text-red-500 font-semibold">{error}</div>
+  //     </div>
+  //   );
+  // }
 
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-lg text-red-500 font-semibold">No profile data found.</div>
-      </div>
-    );
-  }
+  // if (!profile) {
+  //   return (
+  //     <div className="flex items-center justify-center h-[60vh]">
+  //       <div className="text-lg text-red-500 font-semibold">No profile data found.</div>
+  //     </div>
+  //   );
+  // }
 
-  const profileImageUrl = profile.profileImage
+  const profileImageUrl = profile?.profileImage
   ? `http://localhost:3001/static/${profile.profileImage.replace(/\\/g, '/')}`
   : '';
 
   return (
+    <ProtectedRoute>
     <main className="max-w-3xl mx-auto mt-10 p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
       <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">My Profile</h1>
 
@@ -107,7 +108,7 @@ export default function ProfilePage() {
               <PersonOutlineIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Name:</p>
-                <p className="text-gray-600">{profile.name}</p>
+                <p className="text-gray-600">{profile?.name}</p>
               </div>
             </div>
 
@@ -115,7 +116,7 @@ export default function ProfilePage() {
               <EmailIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Email:</p>
-                <p className="text-gray-600">{profile.email}</p>
+                <p className="text-gray-600">{profile?.email}</p>
               </div>
             </div>
 
@@ -123,7 +124,7 @@ export default function ProfilePage() {
               <AdminPanelSettingsIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Role:</p>
-                <p className="text-gray-600 capitalize">{profile.role}</p>
+                <p className="text-gray-600 capitalize">{profile?.role}</p>
               </div>
             </div>
 
@@ -131,7 +132,7 @@ export default function ProfilePage() {
               <BiObjectsHorizontalLeft className="text-blue-600 w-6 h-10" />
               <div>
                 <p className="font-semibold">Bio:</p>
-                <p className="text-gray-600">{profile.bio || 'N/A'}</p>
+                <p className="text-gray-600">{profile?.bio || 'N/A'}</p>
               </div>
             </div>
 
@@ -139,7 +140,7 @@ export default function ProfilePage() {
               <GroupIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Team:</p>
-                <p className="text-gray-600">{profile.team || 'N/A'}</p>
+                <p className="text-gray-600">{profile?.team || 'N/A'}</p>
               </div>
             </div>
 
@@ -147,7 +148,7 @@ export default function ProfilePage() {
               <PeopleAltIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Team Lead:</p>
-                <p className="text-gray-600">{profile.teamLead || 'N/A'}</p>
+                <p className="text-gray-600">{profile?.teamLead || 'N/A'}</p>
               </div>
             </div>
 
@@ -155,7 +156,7 @@ export default function ProfilePage() {
               <WorkIcon className="text-blue-600" />
               <div>
                 <p className="font-semibold">Position:</p>
-                <p className="text-gray-600">{profile.position || 'N/A'}</p>
+                <p className="text-gray-600">{profile?.position || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -178,5 +179,6 @@ export default function ProfilePage() {
         />
       )}
     </main>
+    </ProtectedRoute>
   );
 }

@@ -10,6 +10,10 @@ export const fetchNotifications = async (userId: string, unreadOnly = false) => 
   });
   return data;
 };
+export const getAllNotifications = async (): Promise<Notification[]> => {
+  const response = await axios.get('/notifications'); // Endpoint مخصص للـ admin
+  return response.data;
+};
 
 // Mark notification as read
 export const markNotificationAsRead = async (id: string) => {

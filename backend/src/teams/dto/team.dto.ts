@@ -1,4 +1,3 @@
-// src/team/dto/team.dto.ts
 import { IsArray, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateTeamDto {

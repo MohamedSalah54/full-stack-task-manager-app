@@ -104,3 +104,13 @@ export const getTeamMembers = async () => {
   }
 };
 
+export const getAllTeams = async () => {
+  try {
+    const response = await axios.get("http://localhost:3001/teams/all", { withCredentials: true });
+    return response.data; 
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    throw error;
+  }
+};
+

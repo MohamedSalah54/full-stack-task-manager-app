@@ -3,6 +3,8 @@ import {
     fetchNotifications as fetchNotificationsAPI,
     markNotificationAsRead as markNotificationAsReadAPI,
     markAllNotificationsAsRead as markAllNotificationsAsReadAPI,
+    getAllNotifications,
+    
 } from '../lib/notificationService';
 
 // تعريف الواجهة للإشعار
@@ -27,6 +29,20 @@ const initialState: NotificationState = {
     loading: false,
     error: null,
 };
+
+// thunk جديد خاص بالادمن
+export const fetchAllNotifications = createAsyncThunk(
+    'notifications/fetchAll',
+    async (_, { rejectWithValue }) => {
+      try {
+        const data = await getAllNotifications();
+        return data;
+      } catch (err: any) {
+        return rejectWithValue(err.response?.data?.message || err.message);
+      }
+    }
+  );
+  
 
 // أكشن لجلب الإشعارات من الباك
 export const fetchNotifications = createAsyncThunk(
@@ -101,7 +117,20 @@ const notificationSlice = createSlice({
             })
             .addCase(markAllAsRead.fulfilled, (state) => {
                 state.notifications = state.notifications.map(n => ({ ...n, isRead: true }));
-            });
+            })
+            .addCase(fetchAllNotifications.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+              })
+              .addCase(fetchAllNotifications.fulfilled, (state, action) => {
+                state.loading = false;
+                state.notifications = action.payload;
+              })
+              .addCase(fetchAllNotifications.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+              })
+              
     },
 });
 

@@ -6,7 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { LoginUserDto } from './dto/login-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ProfileService } from 'src/profile/profile.service';
+import { ProfileService } from '../profile/profile.service';
 
 
 @Injectable()
@@ -26,10 +26,11 @@ export class AuthService {
     });
   
     const savedUser = await user.save();
-    const userId = (savedUser._id as Types.ObjectId).toString();
-      
+  
+    const userId =( savedUser._id as Types.ObjectId); 
+  
     await this.profileService.createProfile({
-      userId: userId,
+      userId: userId,  
       name: savedUser.name,
       email: savedUser.email,
       role: savedUser.role
@@ -37,6 +38,7 @@ export class AuthService {
   
     return savedUser;
   }
+  
   
   
   

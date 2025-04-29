@@ -3,6 +3,8 @@ import { Controller, Post, Body, Get, Param, Patch, Query, UseGuards } from '@ne
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Roles } from 'src/auth/Decorator/roles.decorator';
+import { UserRole } from 'src/auth/schemas/user.schema';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -32,5 +34,10 @@ export class NotificationsController {
     @Patch('read-all/:userId')
     markAllAsRead(@Param('userId') userId: string) {
         return this.notificationsService.markAllAsRead(userId);
+    }
+    @Roles(UserRole.ADMIN)
+    @Get()
+    getAllNotifications(@Query('limit') limit = '5') {
+        return this.notificationsService.findAllNotifications(parseInt(limit));
     }
 }

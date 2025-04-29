@@ -18,44 +18,67 @@ export class TasksService {
     private readonly notificationsService: NotificationsService,
 
     ) { }
-    // async create(createTaskDto: CreateTaskDto, creatorId: string): Promise<Task> {
-    //   const creator = await this.userModel.findById(creatorId);
-    //   if (!creator) {
-    //     throw new NotFoundException('Creator not found');
-    //   }
+
+
+    async createTaskForSelf(createTaskDto: CreateTaskDto, creatorId: string): Promise<Task> {
+      const creator = await this.userModel.findById(creatorId);
+      if (!creator) {
+        throw new NotFoundException('Creator not found');
+      }
     
-    //   const creatorObjId = new Types.ObjectId(creatorId);
-    //   const assignedToId = new Types.ObjectId(createTaskDto.assignedTo || creatorId);
+      const creatorObjId = new Types.ObjectId(creatorId);
+      const assignedToId = new Types.ObjectId(createTaskDto.assignedTo || creatorId);
     
-    //   const team = await this.teamModel.findOne({ teamLeader: creatorObjId });
-    //   if (!team) {
-    //     throw new NotFoundException(`No team found for the team leader: ${creatorId}`);
-    //   }
+      if (creator.role !== 'team-lead' && creator.role !== 'admin') {
+        throw new UnauthorizedException('Only team leads and admins can create tasks for themselves');
+      }
+      
+      const newTask = new this.taskModel({
+        ...createTaskDto,
+        createdBy: creatorObjId,
+        assignedTo: assignedToId,
+        completed: false,
+        teamId: null, 
+      });
     
-    //   const newTask = new this.taskModel({
-    //     ...createTaskDto,
-    //     createdBy: creatorObjId,
-    //     assignedTo: assignedToId,
-    //     completed: false,
-    //     teamId: team._id, 
-    //   });
+      const savedTask = await newTask.save();
     
-    //   const savedTask = await newTask.save();
+      await this.userModel.findByIdAndUpdate(assignedToId, {
+        $inc: {
+          'tasks.allTasks': 1,
+          'tasks.completedTasks': 0,
+          'tasks.incompleteTasks': 1,
+        },
+      });
     
-    //   await this.userModel.findByIdAndUpdate(assignedToId, {
-    //     $inc: {
-    //       'tasks.allTasks': 1,
-    //       'tasks.completedTasks': 0,
-    //       'tasks.incompleteTasks': 1,
-    //     },
-    //   });
+      if (creator.role === 'team-lead' && assignedToId.toString() !== creatorId) {
+        const assignedToUser = await this.userModel.findById(assignedToId);
+        if (!assignedToUser) {
+          throw new NotFoundException('Assigned user not found');
+        }
     
-    //   await this.teamModel.findByIdAndUpdate(team._id, {
-    //     $addToSet: { tasks: savedTask._id },
-    //   });
+        const notificationMessage = `${assignedToUser.name} has been assigned a new task: ${savedTask.title} from ${creator.name}`;
     
-    //   return savedTask;
-    // }
+        const notification = await this.notificationsService.create({
+          userId: assignedToId.toString(),
+          message: notificationMessage,
+        });
+    
+        await this.userModel.findByIdAndUpdate(assignedToId, {
+          $push: {
+            notifications: {
+              _id: notification._id,
+              message: notification.message,
+              createdAt: notification.createdAt,
+              read: false,
+            },
+          },
+        });
+      }
+    
+      return savedTask;
+    }
+    
     
     async create(createTaskDto: CreateTaskDto, creatorId: string): Promise<Task> {
       const creator = await this.userModel.findById(creatorId);
@@ -93,17 +116,19 @@ export class TasksService {
         $addToSet: { tasks: savedTask._id },
       });
     
-      // ✅ Send notification if creator is a team-lead and assigned to someone else
       if (creator.role === 'team-lead' && assignedToId.toString() !== creatorId) {
-        const notificationMessage = `You have been assigned a new task: ${savedTask.title} from ${creator.name}`;
-    
-        // 1. Create notification document
+        const assignedToUser = await this.userModel.findById(assignedToId);
+        if (!assignedToUser) {
+          throw new NotFoundException('Assigned user not found');
+        }
+      
+        const notificationMessage = `${assignedToUser.name} has been assigned a new task: ${savedTask.title} from ${creator.name}`;
+      
         const notification = await this.notificationsService.create({
           userId: assignedToId.toString(),
           message: notificationMessage,
         });
-    
-        // 2. Push notification to user's notifications array
+      
         await this.userModel.findByIdAndUpdate(assignedToId, {
           $push: {
             notifications: {
@@ -115,9 +140,56 @@ export class TasksService {
           },
         });
       }
-    
+      
       return savedTask;
     }
+
+
+    
+
+    async getTasksWithTeamNameAndStatus(): Promise<any[]> {
+      const result = await this.taskModel.aggregate([
+        {
+          $lookup: {
+            from: 'teams',
+            localField: 'teamId',
+            foreignField: '_id',
+            as: 'teamInfo',
+          },
+        },
+        {
+          $unwind: {
+            path: '$teamInfo',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $match: {
+            teamId: { $ne: null },
+          },
+        },
+        {
+          $group: {
+            _id: { $toString: '$teamId' },
+            teamName: { $first: '$teamInfo.name' },
+            completedTasks: {
+              $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] },
+            },
+            pendingTasks: {
+              $sum: { $cond: [{ $eq: ['$completed', false] }, 1, 0] },
+            },
+          },
+        },
+        {
+          $sort: { completedTasks: -1 },
+        },
+      ]);
+    
+      console.log("Backend result:", result);
+      return result;
+    }
+    
+    
     
     
     
@@ -304,13 +376,11 @@ export class TasksService {
           );
       }
   
-      // Check if the status changed from incomplete to complete
       if (wasCompleted === false && task.completed === true) {
           const creator = await this.userModel.findById(task.createdBy).exec();
           if (creator) {
               const message = `Task "${task.title}" has been marked as complete by ${user.name}`;
   
-              // Send notification to the creator or team lead
               await this.notificationsService.create({
                   userId: (creator._id as Types.ObjectId).toString(),
                   message,
@@ -326,13 +396,11 @@ export class TasksService {
               await creator.save();
           }
   
-          // If the creator is not found, you can notify the team lead (optional)
           if (!creator && task.teamId) {
               const teamLead = await this.userModel.findOne({ role: 'team-lead', team: task.teamId }).exec();
               if (teamLead) {
                   const message = `Task "${task.title}" has been marked as complete by ${user.name}`;
   
-                  // Send notification to the team lead
                   await this.notificationsService.create({
                       userId: (teamLead._id as Types.ObjectId).toString(),
                       message,
@@ -427,7 +495,6 @@ export class TasksService {
         updateTaskDto.assignedTo &&
         updateTaskDto.assignedTo.toString() !== (oldTask.assignedTo as Types.ObjectId)?.toString()
       ) {
-        // ✅ OLD assigned user logic...
         if (oldTask.assignedTo) {
           const oldAssignedUser = await this.userModel.findById(oldTask.assignedTo).exec();
           if (oldAssignedUser && oldAssignedUser.tasks) {
@@ -501,14 +568,6 @@ export class TasksService {
       return updatedTask;
   }
   
-  
-  
-  
-  
-  
-  
-
-
 
   async remove(id: string, userId: string): Promise<Task> {
     console.log('🗑️ Deleting Task with ID:', id);
@@ -526,20 +585,7 @@ export class TasksService {
       throw new UnauthorizedException('User not found');
     }
   
-
-  
-    if (user.role === 'team-lead' && taskToDelete.teamId?.toString() === user.team?.toString()) {
-      const team = await this.teamModel.findById(taskToDelete.teamId).exec();
-      if (team) {
-        const taskObjectId = new Types.ObjectId(id);
-        
-        const taskIndex = team.tasks.indexOf(taskObjectId);
-        if (taskIndex !== -1) {
-          team.tasks.splice(taskIndex, 1); 
-          await team.save();
-        }
-      }
-  
+    if (user.role === 'admin') {
       await this.taskModel.deleteOne({ _id: id }).exec();
   
       const assignedUser = await this.userModel.findById(taskToDelete.assignedTo);
@@ -559,8 +605,94 @@ export class TasksService {
       return taskToDelete as Task;
     }
   
+    if (user.role === 'team-lead') {
+      if (taskToDelete.createdBy.toString() === userId || (taskToDelete.assignedTo as Types.ObjectId).toString() === userId) {
+        await this.taskModel.deleteOne({ _id: id }).exec();
+  
+        const assignedUser = await this.userModel.findById(taskToDelete.assignedTo);
+        if (assignedUser) {
+          await this.userModel.findByIdAndUpdate(
+            assignedUser._id,
+            {
+              $inc: {
+                'tasks.allTasks': -1,
+                'tasks.completedTasks': taskToDelete.completed ? -1 : 0,
+                'tasks.incompleteTasks': !taskToDelete.completed ? -1 : 0,
+              },
+            }
+          );
+        }
+  
+        return taskToDelete as Task;
+      } else {
+        throw new UnauthorizedException('You do not have permission to delete this task');
+      }
+    }
+  
     throw new UnauthorizedException('You do not have permission to delete this task');
   }
+  
+
+  async findAllForAdmin() {
+    return this.taskModel.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'assignedTo',
+          foreignField: '_id',
+          as: 'assignedTo',
+        },
+      },
+      {
+        $unwind: {
+          path: '$assignedTo',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy',
+        },
+      },
+      {
+        $unwind: {
+          path: '$createdBy',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'teams',
+          localField: 'teamId',
+          foreignField: '_id',
+          as: 'teamId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$teamId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          dueDate: 1,
+          completed: 1,
+          createdAt: 1,
+          assignedTo: { name: 1, email: 1 },
+          createdBy: { name: 1, email: 1 },
+          teamId: { name: 1 },
+        },
+      },
+    ]);
+  }
+  
   
   
 }

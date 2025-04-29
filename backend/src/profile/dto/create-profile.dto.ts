@@ -1,5 +1,7 @@
+import { Types } from 'mongoose';
+
 export class CreateProfileDto {
-  userId: string; 
+  userId: Types.ObjectId;  
   name: string;
   email: string;
   bio?: string;

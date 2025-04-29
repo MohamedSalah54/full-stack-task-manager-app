@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import Cookies from "js-cookie";  
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import Cookies from "js-cookie";
 import { User } from '../interfaces/user';
 
 export interface AuthState {
@@ -14,6 +14,18 @@ const initialState: AuthState = {
   user: null,
 };
 
+// ✅ ده المهم: خليه Thunk
+export const checkAuth = createAsyncThunk("auth/checkAuth", async (_, thunkAPI) => {
+  const token = Cookies.get("token");
+  const user = Cookies.get("user");
+
+  if (token && user) {
+    return { token, user: JSON.parse(user) };
+  } else {
+    throw new Error("Not authenticated");
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -22,32 +34,32 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.token = action.payload.token;
       state.user = action.payload.user;
-      
-      // تخزين البيانات في الـ cookies بدلاً من localStorage
-      Cookies.set("token", action.payload.token, { expires: 7 });  // تواريخ انتهاء الصلاحية يمكن تعديلها حسب الحاجة
+
+      Cookies.set("token", action.payload.token, { expires: 7 });
       Cookies.set("user", JSON.stringify(action.payload.user), { expires: 7 });
     },
     logout: (state) => {
       state.isAuthenticated = false;
       state.token = null;
-      state.user = null; 
+      state.user = null;
 
-      // إزالة البيانات من الـ cookies عند تسجيل الخروج
       Cookies.remove("token");
       Cookies.remove("user");
     },
-    checkAuth: (state) => {
-      const token = Cookies.get("token");  // قراءة الـ token من الـ cookies
-      const user = Cookies.get("user");    // قراءة الـ user من الـ cookies
-
-      if (token && user) {
-        state.isAuthenticated = true;
-        state.token = token;
-        state.user = JSON.parse(user); 
-      }
-    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(checkAuth.fulfilled, (state, action) => {
+      state.isAuthenticated = true;
+      state.token = action.payload.token;
+      state.user = action.payload.user;
+    });
+    builder.addCase(checkAuth.rejected, (state) => {
+      state.isAuthenticated = false;
+      state.token = null;
+      state.user = null;
+    });
   },
 });
 
-export const { login, logout, checkAuth } = authSlice.actions;
+export const { login, logout } = authSlice.actions;
 export default authSlice.reducer;

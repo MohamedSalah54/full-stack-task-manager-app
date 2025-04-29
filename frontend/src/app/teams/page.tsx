@@ -29,6 +29,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import UpdateTaskModal from "@/components/teams/dashboard/tasks/UpdateTaskModal";
 import { Task } from "@/interfaces/taskList";
 import DeleteTaskModal from "@/components/teams/dashboard/tasks/DeleteTaskModal";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const TeamPage = () => {
   const dispatch = useDispatch();
@@ -37,12 +38,13 @@ const TeamPage = () => {
   const { teams } = useAppSelector(
     (state: RootState) => state.teams
   );
+
   const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   const teamId = useAppSelector((state) => state.teams.teams[0]?._id);
 
   const tasks = useAppSelector((state) => state.tasks.tasks);
-  const loading = useAppSelector((state) => state.tasks.loading);
+  const loading = useAppSelector((state) => state.tasks?.loading);
 
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -150,7 +152,7 @@ const TeamPage = () => {
 
   const deleteTaskHandler = async () => {
     if (!taskId) {
-      toast.error("No task selected"); 
+      toast.error("No task selected");
       return;
     }
 
@@ -225,26 +227,21 @@ const TeamPage = () => {
   }, [dispatch, currentUser, router]);
 
 
-  if (!isClient || isAuthLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen text-lg font-medium">
-        Loading authentication...
-      </div>
-    );
-  }
+
 
   const baseUrl = "http://localhost:3001";
   const hasTeam = teams && teams.length > 0;
   const team = hasTeam ? teams[0] : null;
 
   const renderSidebar = (team: Team) => {
-    if (!team) {
-      return <div className="p-6"><Loader /></div>;
-    }
+    // if (!team) {
+    //   return <div className="p-6"><Loader /></div>;
+    // }
     console.log(team);
 
 
     return (
+      <ProtectedRoute>
       <div className="w-1/5 bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
         {/* Sidebar content */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4">{team.name}</h2>
@@ -317,14 +314,16 @@ const TeamPage = () => {
           <p className="text-gray-700 text-sm">{team.description}</p>
         </div>
       </div>
+      </ProtectedRoute>
     );
   };
 
-  if (!hasFetched) return <div className="p-10"><Loader /></div>;
+  // if (!hasFetched) return <div className="p-10"><Loader /></div>;
 
 
 
   return (
+    <ProtectedRoute>
     <div className="flex flex-col min-h-screen">
       {/* Navbar for team-lead */}
       {hasTeam && currentUser?.role === "team-lead" && (
@@ -585,12 +584,14 @@ const TeamPage = () => {
                           variant="h6"
                           gutterBottom
                           sx={{
-                            color: '#38bdf8',
+                            color: 'primary.main',
                             fontWeight: 'bold',
                           }}
                         >
                           {task.title}
                         </Typography>
+
+
                         <Typography variant="body2" color="textSecondary" paragraph>
                           {task.description}
                         </Typography>
@@ -667,6 +668,7 @@ const TeamPage = () => {
 
 
     </div>
+    </ProtectedRoute>
   );
 };
 

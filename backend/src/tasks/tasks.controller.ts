@@ -4,6 +4,8 @@ import { Task } from './schemas/task.schema';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from 'src/auth/Decorator/roles.decorator';
+import { UserRole } from 'src/auth/schemas/user.schema';
 
 interface RequestWithUser extends Request {
   user: {
@@ -24,6 +26,20 @@ export class TasksController {
     return this.tasksService.create(createTaskDto, userId);
   }
 
+  @Post('createTaskForSelf')
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  createTaskForSelf(@Body() createTaskDto: CreateTaskDto, @Req() req: RequestWithUser): Promise<Task> {
+    const userId = req.user.userId;
+    return this.tasksService.createTaskForSelf(createTaskDto, userId);
+  }
+
+
+
+   @Get('with-team-status')
+  async getTasksWithTeamNameAndStatus() {
+    return this.tasksService.getTasksWithTeamNameAndStatus();
+  }
+
   @Get()
   findAll(@Query('category') category: string, @Req() req: RequestWithUser): Promise<Task[]> {
     const userId = req.user.userId;
@@ -35,7 +51,11 @@ export class TasksController {
     return this.tasksService.findAllTasksForTeamLead(teamId);
   }
   
-
+  @Roles(UserRole.ADMIN)
+  @Get('all')
+  getAllTasks() {
+    return this.tasksService.findAllForAdmin(); 
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Task> {
@@ -64,4 +84,6 @@ export class TasksController {
     const userId = req.user.userId;
     return this.tasksService.remove(id, userId);
   }
+
+
 }
