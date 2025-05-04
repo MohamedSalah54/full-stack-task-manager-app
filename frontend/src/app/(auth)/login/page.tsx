@@ -40,7 +40,7 @@ export default function Login() {
     try {
       const data = await loginUser({ email, password });
 
-      dispatch(login(data.token));
+      dispatch(login({ token: data.token, user: data.user }));  
 
       toast.success('Login successful!');
       setTimeout(() => {
@@ -97,10 +97,10 @@ export default function Login() {
             </button>
           </form>
           
-          <div className="text-center text-sm text-gray-500 mt-10">
+          {/* <div className="text-center text-sm text-gray-500 mt-10">
             Don't have an account?{' '}
             <a href="/register" className="text-indigo-600 hover:text-indigo-700">Sign Up</a>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

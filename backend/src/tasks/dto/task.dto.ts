@@ -1,10 +1,12 @@
-import { IsString, IsBoolean, IsEnum, IsDateString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsBoolean, IsEnum, IsDateString, IsNotEmpty, IsOptional, IsMongoId } from 'class-validator';
+import { Types } from 'mongoose';
 
 export enum TaskCategory {
   WORK = "work",
   PERSONAL = "personal",
   SHOPPING = "shopping"
 }
+
 
 export class CreateTaskDto {
   @IsString()
@@ -21,7 +23,12 @@ export class CreateTaskDto {
   @IsDateString({ strict: true }, { message: 'Due date must be a valid date string' })
   @IsNotEmpty({ message: 'Due date is required' })
   dueDate: string;
+
+  @IsOptional()
+  @IsMongoId({ message: 'assignedTo must be a valid user ID' })
+  assignedTo?: string;
 }
+
 
 export class UpdateTaskDto {
   @IsOptional()
@@ -43,4 +50,14 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsBoolean()
   completed?: boolean;
+
+  @IsOptional()
+  @IsMongoId({ message: 'teamId must be a valid MongoDB ObjectId' })
+  teamId?: string; 
+
+  @IsOptional()
+  @IsMongoId({ message: 'assignedTo must be a valid MongoDB ObjectId' })
+  assignedTo?: Types.ObjectId; 
 }
+
+

@@ -1,5 +1,6 @@
+// في ملف slices/tasksSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {Task} from '@/interfaces/taskList'
+import { Task } from '@/interfaces/taskList';
 
 interface TasksState {
   tasks: Task[];
@@ -31,7 +32,7 @@ const tasksSlice = createSlice({
     toggleComplete(state, action: PayloadAction<string>) {
       const index = state.tasks.findIndex(task => task._id === action.payload);
       if (index !== -1) {
-        state.tasks[index].isCompleted = !state.tasks[index].isCompleted;
+        state.tasks[index].completed = !state.tasks[index].completed;
       }
     },
   },

@@ -4,7 +4,7 @@ export interface Task {
   description: string;
   dueDate: string;
   category: string;
-  isCompleted: boolean;
+  completed: boolean;
 }
 
 export interface TaskItemProps {
@@ -14,4 +14,6 @@ export interface TaskItemProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  currentUser: { role: string }
+  
 }

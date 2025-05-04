@@ -1,184 +1,182 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useProfile } from '@/hooks/useProfile';
-import Loader from '@/loader/Loader';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
+import ProfileForm from '@/components/profile/ProfileForm';
+import { fetchProfile, updateProfile, updateProfileForAdminThunk } from '@/redux/profileSlice';
+import { UpdateProfileDto } from '@/interfaces/profile';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import EmailIcon from '@mui/icons-material/Email';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import { BiObjectsHorizontalLeft } from "react-icons/bi";
+import GroupIcon from '@mui/icons-material/Group';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import WorkIcon from '@mui/icons-material/Work';
 
-const ProfilePage = () => {
-  const { user, loading, updateProfile } = useProfile();
-  const router = useRouter();
+export default function ProfilePage() {
+  const dispatch = useAppDispatch();
+  const { profile, loading, error } = useAppSelector((state) => state.profile);
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const userId = useAppSelector((state) => state.auth.user?.id);
+  const [editing, setEditing] = useState(false);
+  
 
-  const [editMode, setEditMode] = useState<boolean>(false);
-  const [formData, setFormData] = useState<{ name: string; bio: string; linkedin: string }>({
-    name: '',
-    bio: '',
-    linkedin: '',
-  });
 
+   
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (userId) {
+      dispatch(fetchProfile(userId));
     }
-  }, [loading, user, router]);
-
-  const handleGoBack = () => {
-    router.push('/');
-  };
-
-  const openEditModal = () => {
-    if (user) {
-      setFormData({ name: user.name, bio: user.bio, linkedin: user.linkedin });
+  }, [dispatch, userId]);
+  
+  // بعد رفع الصورة أو تحديث البروفايل
+  const handleUpdateProfile = async (data: UpdateProfileDto) => {
+    if (!userId) {
+      console.error("User ID is undefined!");
+      return;
     }
-    setEditMode(true);
+  
+    try {
+      if (role === 'admin') {
+        await dispatch(updateProfileForAdminThunk({ userId, data })).unwrap();
+      } else {
+        await dispatch(updateProfile({ userId, data })).unwrap();
+      }
+  
+      // Fetch profile again to get updated data (like image)
+      dispatch(fetchProfile(userId));
+  
+      setEditing(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
   };
-
-  const closeEditModal = () => {
-    setEditMode(false);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSave = async () => {
-    await updateProfile(formData);
-    setEditMode(false);
-  };
-
+  
+  
   if (loading) {
-    return <Loader />;
-  }
-
-  if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-xl text-gray-700">No user data found.</p>
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-lg font-semibold text-gray-500">Loading...</div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-lg text-red-500 font-semibold">{error}</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-lg text-red-500 font-semibold">No profile data found.</div>
+      </div>
+    );
+  }
+
+  const profileImageUrl = profile.profileImage
+  ? `http://localhost:3001/static/${profile.profileImage.replace(/\\/g, '/')}`
+  : '';
+
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 relative">
-    <div className="w-full max-w-4xl mx-auto bg-white p-4 sm:p-6 rounded-lg shadow-lg relative">
-      <button
-        onClick={handleGoBack}
-        className="text-gray-500 hover:text-gray-700 mb-4 flex items-center space-x-2"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M15 19l-7-7 7-7"
+    <main className="max-w-3xl mx-auto mt-10 p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
+      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">My Profile</h1>
+
+      {/* عرض صورة البروفايل */}
+      <div className="flex justify-center mb-6">
+        {profileImageUrl ? (
+          <img
+            src={profileImageUrl}
+            alt="Profile Image"
+            className="w-32 h-32 rounded-full object-cover border"
           />
-        </svg>
-        <span>Back</span>
-      </button>
+        ) : (
+          <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+            <PersonOutlineIcon className="text-4xl text-gray-500" />
+          </div>
+        )}
+      </div>
 
-      <button
-        onClick={openEditModal}
-        className="absolute top-4 right-4 text-white bg-indigo-600 hover:bg-indigo-800 rounded px-3 py-2 text-sm sm:px-4 sm:py-2"
-      >
-        Edit Profile
-      </button>
+      {!editing ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700">
+            <div className="flex items-center gap-3">
+              <PersonOutlineIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Name:</p>
+                <p className="text-gray-600">{profile.name}</p>
+              </div>
+            </div>
 
-      <div className="flex flex-col sm:flex-row items-center sm:space-x-6 space-y-4 sm:space-y-0">
-        <img
-          src={user.avatar}
-          alt="Avatar"
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full"
+            <div className="flex items-center gap-3">
+              <EmailIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Email:</p>
+                <p className="text-gray-600">{profile.email}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <AdminPanelSettingsIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Role:</p>
+                <p className="text-gray-600 capitalize">{profile.role}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <BiObjectsHorizontalLeft className="text-blue-600 w-6 h-10" />
+              <div>
+                <p className="font-semibold">Bio:</p>
+                <p className="text-gray-600">{profile.bio || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <GroupIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Team:</p>
+                <p className="text-gray-600">{profile.team || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <PeopleAltIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Team Lead:</p>
+                <p className="text-gray-600">{profile.teamLead || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <WorkIcon className="text-blue-600" />
+              <div>
+                <p className="font-semibold">Position:</p>
+                <p className="text-gray-600">{profile.position || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => setEditing(true)}
+              className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition"
+            >
+              Update Profile
+            </button>
+          </div>
+        </>
+      ) : (
+        <ProfileForm
+          profile={profile}
+          role={role}
+          onCancel={() => setEditing(false)}
+          onSave={handleUpdateProfile}
         />
-        <div className="text-center sm:text-left">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-indigo-600">
-            {user.name}
-          </h1>
-          <p className="text-gray-500">{user.email}</p>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-lg sm:text-xl font-semibold">Bio</h2>
-        <p className="text-gray-700 mt-2">{user.bio}</p>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-lg sm:text-xl font-semibold">Find Me On</h2>
-        <a
-          href={user.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-indigo-600 hover:text-indigo-800"
-        >
-          LinkedIn Profile
-        </a>
-      </div>
-    </div>
-
-    {editMode && (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Edit Profile</h2>
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full border border-gray-300 p-2 rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">Bio</label>
-            <textarea
-              name="bio"
-              value={formData.bio}
-              onChange={handleInputChange}
-              className="w-full border border-gray-300 p-2 rounded"
-              rows={3}
-            ></textarea>
-          </div>
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">LinkedIn URL</label>
-            <input
-              type="text"
-              name="linkedin"
-              value={formData.linkedin}
-              onChange={handleInputChange}
-              className="w-full border border-gray-300 p-2 rounded"
-            />
-          </div>
-          <div className="flex justify-end space-x-4">
-            <button
-              onClick={closeEditModal}
-              className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-800 text-sm"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-);
-};
-
-export default ProfilePage;
+      )}
+    </main>
+  );
+}

@@ -1,7 +1,7 @@
-import { IsEmail, IsString, MinLength, IsOptional, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 
 export class CreateUserDto {
-
+  
   @IsEmail({}, { message: 'Invalid email format' })
   readonly email: string;
 
@@ -10,17 +10,7 @@ export class CreateUserDto {
   readonly password: string;
 
   @IsString()
-  @Matches(
-    /^https:\/\/www\.linkedin\.com\/in\/[a-zA-Z0-9-_/]+$/,
-    { message: 'Invalid LinkedIn URL' },
-  )
-  readonly linkedinUrl: string;
+  @MinLength(1, { message: 'Name is required' })
+  readonly name: string;
 
-  @IsOptional()
-  @IsString()
-  readonly linkedinPhoto?: string;
-
-  @IsOptional()
-  @IsString()
-  readonly linkedinBio?: string;
 }

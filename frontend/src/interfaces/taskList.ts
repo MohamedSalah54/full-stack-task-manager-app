@@ -4,7 +4,7 @@ export interface Task {
     description: string;
     dueDate: string;
     category: string;
-    isCompleted: boolean;
+    completed: boolean;
   }
 export interface TaskListProps {
   tasks: Task[];
@@ -13,4 +13,5 @@ export interface TaskListProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onToggleComplete: (task: Task) => void;
+  currentUser: { role: string }
 }

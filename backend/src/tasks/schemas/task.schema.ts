@@ -21,7 +21,14 @@ export class Task {
   completed: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  assignedTo?: Types.ObjectId;
+  
+  @Prop({ type: Types.ObjectId, ref: 'Team' })
+  teamId: Types.ObjectId;
 }
+
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

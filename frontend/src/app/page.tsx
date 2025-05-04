@@ -21,7 +21,7 @@ export default function HomePage() {
             Manage your tasks efficiently and stay organized.
           </p>
           <Link
-            href="/register"
+            href="/login"
             className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg text-lg"
           >
             Get Started
