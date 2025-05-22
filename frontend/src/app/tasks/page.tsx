@@ -28,6 +28,8 @@ import { Task } from '@/interfaces/task';
 import useAuth from '../../hooks/useAuth';
 import { useAppSelector } from '@/hooks/redux';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import Chatbot from '@/components/Chatbot';
+import ChatPage from '@/components/Chatbot';
 
 export default function TasksPage() {
   const isAuthChecked = useAuth();
@@ -151,6 +153,7 @@ export default function TasksPage() {
 
   return (
     <>
+    
     <ProtectedRoute> 
       {(!isAuthChecked || loading) ? (
         <Loader />
@@ -262,6 +265,7 @@ export default function TasksPage() {
         </div>
       )}
       </ProtectedRoute>
+      <ChatPage/>
     </>
   );
 }

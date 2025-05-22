@@ -25,7 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     ProfileModule,
     TeamModule,
-    NotificationsModule
+    NotificationsModule,
     
   ],
 })

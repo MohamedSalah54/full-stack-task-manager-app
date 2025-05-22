@@ -30,3 +30,9 @@ main {
   flex-grow: 1;
 }
 
+@media (max-width: 320px) {
+  .team-image {
+    width: 280px;
+    height: 280px;
+  }
+}

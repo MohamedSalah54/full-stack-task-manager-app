@@ -9,6 +9,7 @@ export interface Task {
     category?: string;
     completed: boolean;
     id?: string;
+    commentsCount: number;
   }
   
   export interface TaskCreateData {
