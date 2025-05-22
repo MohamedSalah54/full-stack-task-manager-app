@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../redux/store';
 import {
   getTasks as getTasksAPI,
-  createTask as createTaskAPI,
+  createTaskForSelf as createTaskAPI,
   updateTask as updateTaskAPI,
   deleteTask as deleteTaskAPI,
   toggleTaskComplete,
@@ -27,11 +27,16 @@ import { TaskFormData } from '@/interfaces/taskForm';
 import { Task } from '@/interfaces/task';
 import useAuth from '../../hooks/useAuth';
 import { useAppSelector } from '@/hooks/redux';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Chatbot from '@/components/Chatbot';
+import ChatPage from '@/components/Chatbot';
 
 export default function TasksPage() {
   const isAuthChecked = useAuth();
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
+  console.log(tasks);
+  
   const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -148,6 +153,8 @@ export default function TasksPage() {
 
   return (
     <>
+    
+    <ProtectedRoute> 
       {(!isAuthChecked || loading) ? (
         <Loader />
       ) : (
@@ -257,6 +264,8 @@ export default function TasksPage() {
 
         </div>
       )}
+      </ProtectedRoute>
+      <ChatPage/>
     </>
   );
 }

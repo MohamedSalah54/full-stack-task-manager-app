@@ -13,17 +13,14 @@ import { logoutUser } from "../lib/auth";
 import toast from "react-hot-toast";
 import { useAppSelector } from "@/hooks/redux";
 import { fetchProfile } from "@/redux/profileSlice";
-import Loader from "@/loader/Loader";
-import { fetchNotifications, markNotificationAsRead } from '@/redux/notificationSlice';
+import { fetchNotifications, markNotificationAsRead,fetchAllNotifications  } from '@/redux/notificationSlice';
 import { Tooltip } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import socket from "@/lib/socket";
 import { Dialog } from '@mui/material';
-import { useMediaQuery } from '@mui/material';
 
 
 export default function Navbar() {
-  const isMobile = useMediaQuery('(max-width: 768px)');
   const [openDialog, setOpenDialog] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
@@ -42,35 +39,44 @@ export default function Navbar() {
 
   const [openNotifications, setOpenNotifications] = useState(false);
   const notificationAnchorRef = useRef<HTMLButtonElement>(null);
+  const currentUser = useAppSelector((state) => state.auth.user);
 
-  // Fetch notifications when component mounts
   useEffect(() => {
-    if (userId) {
-      dispatch(fetchNotifications(userId));  // Fetch initial notifications
-    }
-  }, [dispatch, userId]);
+    const hasReloaded = sessionStorage.getItem("hasReloaded");
 
-  // Handle real-time notifications
+    if (!hasReloaded) {
+      sessionStorage.setItem("hasReloaded", "true");
+      window.location.reload();
+    }
+  }, []);
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      dispatch(fetchAllNotifications()); 
+    } else if (userId) {
+      dispatch(fetchNotifications(userId));  
+    }
+  }, [dispatch, userId, currentUser]);
+  
   useEffect(() => {
     if (userId) {
       socket.on('new_notification', (notification) => {
-        dispatch(setNotifications([notification, ...notifications])); // Add new notification to the list
+        dispatch(setNotifications([notification, ...notifications])); 
       });
-
+  
       return () => {
-        socket.off('new_notification');  // Clean up the socket listener on unmount
+        socket.off('new_notification'); 
       };
     }
   }, [userId, dispatch, notifications]);
-
+  
   const handleToggleNotifications = () => {
     setOpenNotifications((prev) => !prev);
   };
-
+  
   const handleNotificationClick = (id: string) => {
     dispatch(markNotificationAsRead(id));
   };
-
+  
   const handleClickOutside = (event: MouseEvent) => {
     if (
       notificationAnchorRef.current &&
@@ -79,7 +85,7 @@ export default function Navbar() {
       setOpenNotifications(false);
     }
   };
-
+  
   useEffect(() => {
     document.addEventListener('click', handleClickOutside);
     return () => {
@@ -89,21 +95,23 @@ export default function Navbar() {
 
 
   useEffect(() => {
-    async function loadData() {
+    const loadData = async () => {
       try {
         await dispatch(checkAuth());
         if (userId) {
           await dispatch(fetchProfile(userId));
         }
       } catch (error) {
+        console.log("Auth check failed", error);
       } finally {
         setIsAuthChecked(true);
         setIsRoleLoaded(true);
       }
-    }
-
+    };
+  
     loadData();
-  }, [dispatch, userId]);
+  }, [dispatch]);
+  
 
   useEffect(() => {
     if (isAuthenticated && userId) {
@@ -133,7 +141,6 @@ export default function Navbar() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  if (!isAuthChecked || !isRoleLoaded) return <div className="text-center py-4 text-white bg-blue-600"><Loader /></div>;
 
 
   const baseUrl = "http://localhost:3001";
@@ -155,6 +162,7 @@ export default function Navbar() {
 
   const canSeeTeam = role && (role === 'user' || role === 'team-lead');
 
+
   return (
     <nav className="bg-blue-600 text-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -171,6 +179,25 @@ export default function Navbar() {
               {canSeeTeam && (
                 <Link href="/teams" className="hover:text-gray-200 transition">Team</Link>
               )}
+
+              {currentUser?.role?.toLowerCase() === 'team-lead' ? (
+                <Link href="/dashboard" className="hover:text-gray-200 transition">
+                  Dashboard
+                </Link>
+              ) : null}
+
+              {currentUser?.role?.toLowerCase() === 'admin' ? (
+                <Link href="/admin/dashboard" className="hover:text-gray-200 transition">
+                  Dashboard
+                </Link>
+              ) : null}
+
+              {currentUser?.role?.toLowerCase() === 'admin' ? (
+                <Link href="/admin/users" className="hover:text-gray-200 transition">
+                  Users
+                </Link>
+              ) : null}
+
 
               {/* Notifications */}
               <div className="relative">
@@ -221,8 +248,8 @@ export default function Navbar() {
                         border: '2px solid #2563eb',
                         color: 'black',
                         boxShadow: 'none',
-                        width: 350, 
-                        padding: 0, 
+                        width: 350,
+                        padding: 0,
                       },
                     },
                     arrow: {
@@ -288,7 +315,10 @@ export default function Navbar() {
               <Link href="/tasks" className="block py-2 px-4 hover:bg-blue-800">Tasks</Link>
 
               {canSeeTeam && (
-                <Link href="/team" className="block py-2 px-4 hover:bg-blue-800">Team</Link>
+                <Link href="/teams" className="block py-2 px-4 hover:bg-blue-800">Team</Link>
+              )}
+              {currentUser?.role === 'team-lead' && (
+                <Link href="/dashboard" className="block py-2 px-4 hover:bg-blue-800">Dashboard</Link>
               )}
 
               {/* Notifications */}

@@ -1,4 +1,3 @@
-// team.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from 'src/auth/schemas/user.schema';

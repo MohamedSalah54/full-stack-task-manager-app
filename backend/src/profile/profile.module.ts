@@ -12,6 +12,6 @@ import { UsersModule } from '../users/user.module';
   ],
   providers: [ProfileService],
   controllers: [ProfileController],
-  exports: [ProfileService],
+  exports: [ProfileService , MongooseModule],
 })
 export class ProfileModule {}

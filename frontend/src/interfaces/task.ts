@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 
 export interface Task {
     assignedTo: ReactNode;
@@ -8,6 +9,7 @@ export interface Task {
     category?: string;
     completed: boolean;
     id?: string;
+    commentsCount: number;
   }
   
   export interface TaskCreateData {

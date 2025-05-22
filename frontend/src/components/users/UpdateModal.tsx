@@ -30,16 +30,15 @@ const EditModal: React.FC<Props> = ({ isOpen, onClose, user, onUpdate }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = () => {
     if (user && user._id) {
-      console.log("Updating user with ID:", user._id);  
-      onUpdate({ ...user, ...formData });
+      console.log("formData before update:", formData);
+      onUpdate({ _id: user._id, ...formData });
+
       onClose();
-    } else {
-      console.error("User _id is missing in handleSubmit", user);
     }
   };
+
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -78,11 +77,13 @@ const EditModal: React.FC<Props> = ({ isOpen, onClose, user, onUpdate }) => {
               onChange={handleChange}
               className="w-full mb-3 px-4 py-2 border rounded-md"
             >
-              <option defaultValue={formData.role}>{formData.role}</option>
+              <option value="" disabled>-- Select Role --</option>
               <option value="user">User</option>
               <option value="team-lead">Team Lead</option>
               <option value="admin">Admin</option>
             </select>
+
+
 
             <div className="flex justify-end space-x-3">
               <button

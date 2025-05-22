@@ -9,14 +9,14 @@ import {
   
   @WebSocketGateway({
     cors: {
-      origin: '*', // عدلها حسب الدومين بتاعك
+      origin: '*', 
     },
   })
   export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
   
-    private connectedUsers: Record<string, string> = {}; // userId => socketId
+    private connectedUsers: Record<string, string> = {}; 
   
     handleConnection(client: Socket) {
       console.log(`Client connected: ${client.id}`);

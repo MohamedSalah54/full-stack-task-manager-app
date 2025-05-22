@@ -63,4 +63,13 @@ export class NotificationsService {
   
     return { modifiedCount: result.modifiedCount };
   }
+
+  async findAllNotifications(limit = 5): Promise<Notification[]> {
+    return this.notificationModel
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .exec();
+  }
+  
 }

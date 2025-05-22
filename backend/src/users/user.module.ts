@@ -9,7 +9,6 @@ import { ProfileModule } from '../profile/profile.module';
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     forwardRef(() => ProfileModule),
-    // Other module imports...
   ],
   controllers: [UsersController],
   providers: [UsersService],

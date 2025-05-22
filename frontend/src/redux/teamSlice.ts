@@ -1,7 +1,21 @@
 // src/redux/teamSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getMyTeam, createTeam, updateTeam, deleteTeam } from '../lib/teams'; 
+import { getMyTeam, createTeam, updateTeam, deleteTeam, getAllTeams } from '../lib/teams'; 
 import { Team, TeamState, CreateTeamDto, UpdateTeamDto } from '../interfaces/team';
+
+
+
+export const fetchAllTeams = createAsyncThunk(
+  'teams/fetchAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const teams = await getAllTeams();
+      return teams;  
+    } catch (err: any) {
+      return rejectWithValue(err.message);  
+    }
+  }
+);
 
 export const fetchTeams = createAsyncThunk<Team[], void>(
   'teams/fetchTeams',
@@ -33,6 +47,8 @@ export const removeTeam = createAsyncThunk<void, string>(
     await deleteTeam(id);
   }
 );
+
+
 
 const initialState: TeamState = {
   teams: [],
@@ -96,6 +112,16 @@ const teamSlice = createSlice({
       .addCase(removeTeam.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to delete team';
+      })
+      .addCase(fetchAllTeams.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchAllTeams.fulfilled, (state, action) => {
+        state.loading = false;
+        state.teams = action.payload;  // حفظ الفرق في الستور
+      })
+      .addCase(fetchAllTeams.rejected, (state, action) => {
+        state.loading = false;
       });
   },
 });

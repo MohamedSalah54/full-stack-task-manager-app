@@ -1,4 +1,3 @@
-// src/team/team.controller.ts
 import {
   Body,
   Controller,
@@ -14,6 +13,8 @@ import {
 import { TeamService } from './team.service';
 import { CreateTeamDto, UpdateTeamDto } from './dto/team.dto';
 import { JwtAuthGuard as AuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from 'src/auth/Decorator/roles.decorator';
+import { UserRole } from 'src/auth/schemas/user.schema';
 
 @Controller('teams')
 @UseGuards(AuthGuard)
@@ -61,4 +62,10 @@ export class TeamController {
   checkUser(@Query('email') email: string) {
     return this.teamService.checkUser(email);
   }
+
+  @Roles(UserRole.ADMIN)
+  @Get('all')
+  getAllTeams() {
+    return this.teamService.findAll(); 
+}
 }

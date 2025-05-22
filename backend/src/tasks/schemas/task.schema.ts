@@ -14,7 +14,7 @@ export class Task {
   @Prop({ required: true, enum: ['work', 'personal', 'shopping'], default: 'personal' })
   category: string;
 
-  @Prop({ required: true }) 
+  @Prop({ required: true })
   dueDate: Date;
 
   @Prop({ default: false })
@@ -25,9 +25,13 @@ export class Task {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   assignedTo?: Types.ObjectId;
-  
+
   @Prop({ type: Types.ObjectId, ref: 'Team' })
   teamId: Types.ObjectId;
+
+  @Prop({ default: 0 })
+  commentsCount: number;
+
 }
 
 

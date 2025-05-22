@@ -67,8 +67,7 @@ export const fetchAllTasksForTeamLead = async (teamId) => {
     });
     return data;
   } catch (error) {
-    console.error("Error fetching team tasks:", error);
-    throw error;
+   
   }
 };
 
@@ -101,5 +100,38 @@ export const deleteTask = async (_id: string): Promise<any> => {
   } catch (error) {
     toast.error("Failed to Delete Task");
     throw error;
+  }
+};
+
+
+export const getAllTasks = async () => {
+  try {
+    const response = await API.get("http://localhost:3001/tasks/all", { withCredentials: true });
+    return response.data; 
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    throw error;
+  }
+};
+
+export const createTaskForSelf = async (taskData: any) => {
+  try {
+    const response = await API.post(`http://localhost:3001/tasks/createTaskForSelf`, taskData, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || 'Something went wrong';
+  }
+}
+
+export const fetchTasksWithTeamNameAndStatus = async (): Promise<any[]> => {
+  try {
+    const response = await API.get('http://localhost:3001/tasks/with-team-status', {
+      withCredentials: true,
+    } ); 
+    return response.data; 
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Error fetching tasks');
   }
 };

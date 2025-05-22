@@ -11,24 +11,25 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import WorkIcon from '@mui/icons-material/Work';
 
 interface Props {
-  profile: Profile;
+  profile: Profile | null;
   role?: string;
   onCancel: () => void;
   onSave: (data: UpdateProfileDto & { profileImageFile?: File }) => void;
 }
 
+
 export default function ProfileForm({ profile, role, onCancel, onSave }: Props) {
   const [form, setForm] = useState<UpdateProfileDto>({
-    name: profile.name,
-    email: profile.email,
-    role: profile.role,
-    bio: profile.bio,
-    position: profile.position,
-    team: profile.team,
-    teamLead: profile.teamLead,
+    name: profile?.name,
+    email: profile?.email,
+    role: profile?.role,
+    bio: profile?.bio,
+    position: profile?.position,
+    team: profile?.team,
+    teamLead: profile?.teamLead,
   });
   const [profileImageFile, setProfileImageFile] = useState<File | undefined>(undefined);
-  const [imagePreview, setImagePreview] = useState<string>(profile.profileImage || '');
+  const [imagePreview, setImagePreview] = useState<string>(profile?.profileImage || '');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -44,12 +45,15 @@ export default function ProfileForm({ profile, role, onCancel, onSave }: Props) 
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await onSave({ ...form, profileImageFile });
+  
+    const res: any = await onSave({ ...form, profileImageFile });
+  
     if (res?.newImageUrl) {
       setImagePreview(res.newImageUrl); 
       setForm(prev => ({ ...prev, profileImageUrl: res.newImageUrl }));
     }
   };
+  
   
   
   
@@ -176,7 +180,6 @@ export default function ProfileForm({ profile, role, onCancel, onSave }: Props) 
           onChange={handleFileChange}
           className="w-full"
         />
-        {/* عرض معاينة الصورة لو موجودة */}
         {imagePreview && (
           <div>
             <p className="text-sm text-gray-600">Image Preview:</p>

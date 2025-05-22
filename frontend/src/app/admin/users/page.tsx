@@ -9,15 +9,25 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { deleteUser, deleteManyUsers, updateUser, fetchAllUsers, fetchSearchUsers } from "@/lib/user";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Users: React.FC = () => {
+  const router = useRouter();
+  const role = useAppSelector((state) => state.auth.user?.role);
+
+  useEffect(() => {
+    if (role && role !== "admin") {
+      router.push("/404");
+    }
+  }, [role, router]);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
   const dispatch = useAppDispatch();
-
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -27,13 +37,11 @@ const Users: React.FC = () => {
         email: searchQuery,
         role: searchQuery,
       };
-
-      dispatch(fetchSearchUsers(params)); 
+      dispatch(fetchSearchUsers(params));
     } else {
-      dispatch(fetchAllUsers()); 
+      dispatch(fetchAllUsers());
     }
   }, [dispatch, searchQuery]);
-
 
   const { user: users } = useAppSelector((state) => state.createUser);
 
@@ -69,8 +77,8 @@ const Users: React.FC = () => {
   };
 
   const handleUpdateUser = (user: any) => {
-    const { _id, name, email } = user;
-    const userData = { name, email };
+    const { _id, name, email, role } = user;
+    const userData = { name, email, role };
 
     dispatch(updateUser(_id, userData as any))
       .then(() => toast.success("User updated successfully"))
@@ -78,9 +86,11 @@ const Users: React.FC = () => {
     setIsEditOpen(false);
   };
 
-  
+  if (role !== "admin") return null; 
+
   return (
     <>
+    <ProtectedRoute>
       <div className="flex justify-end mt-4 mb-4 mr-4 space-x-4">
         <button
           type="button"
@@ -123,20 +133,21 @@ const Users: React.FC = () => {
         onClose={() => setIsDeleteOpen(false)}
         onConfirmDelete={handleConfirmDelete}
       />
-      
+
       <div className="mb-4">
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search by name, email, or role"
-        className="px-4 py-2 border border-gray-300 rounded-md ml-5"
-      />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by name, email, or role"
+          className="px-4 py-2 border border-gray-300 rounded-md ml-5"
+        />
       </div>
 
       <div>
         <DataTable onSelect={(ids) => setSelectedUsers(ids)} />
       </div>
+      </ProtectedRoute>
     </>
   );
 };
