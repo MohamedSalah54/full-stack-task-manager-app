@@ -14,9 +14,21 @@ import Loader from "@/loader/Loader";
 import UpdateTeamModal from "@/components/teams/dashboard/team/UpdateTeamModal ";
 import { updateTeam } from "@/lib/teams";
 import CreateTaskModal from "../../components/teams/dashboard/tasks/CreateTaskModal";
-import { Card, CardContent, Typography, Badge, Box, CircularProgress } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Badge,
+  Box,
+  CircularProgress,
+} from "@mui/material";
 import { green, red } from "@mui/material/colors";
-import { deleteTask, fetchAllTasksForTeamLead, fetchTasksTeam, toggleTaskComplete } from "@/lib/tasks";
+import {
+  deleteTask,
+  fetchAllTasksForTeamLead,
+  fetchTasksTeam,
+  toggleTaskComplete,
+} from "@/lib/tasks";
 import { setTasks, updateTask } from "@/redux/taskSlice";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import Menu from "@mui/material/Menu";
@@ -30,16 +42,15 @@ import UpdateTaskModal from "@/components/teams/dashboard/tasks/UpdateTaskModal"
 import { Task } from "@/interfaces/taskList";
 import DeleteTaskModal from "@/components/teams/dashboard/tasks/DeleteTaskModal";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import CommentsModal from "@/components/comments/CommentModal";
+import { FaUserCircle } from "react-icons/fa";
 
 const TeamPage = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const { teams } = useAppSelector(
-    (state: RootState) => state.teams
-  );
+  const { teams } = useAppSelector((state: RootState) => state.teams);
 
   const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
@@ -70,13 +81,13 @@ const TeamPage = () => {
     setSelectedTaskForComments(null);
   };
 
-
-
-
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, taskId: string) => {
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    taskId: string
+  ) => {
     setAnchorEl(event.currentTarget);
     setSelectedTaskId(taskId);
   };
@@ -85,10 +96,6 @@ const TeamPage = () => {
     setAnchorEl(null);
     setSelectedTaskId(null);
   };
-
-
-
-
 
   const handleToggle = async (taskId: string) => {
     try {
@@ -101,12 +108,27 @@ const TeamPage = () => {
       } else {
         toast.success("Task marked as incomplete!");
       }
-
     } catch (error) {
       toast.error("Something went wrong while toggling task status");
     }
   };
 
+  const ProfileImageWithFallback = ({ src, alt }) => {
+  const [error, setError] = useState(false);
+
+  if (error || !src) {
+    return <FaUserCircle className="text-gray-400 text-4xl mr-3" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-10 h-10 rounded-full object-cover border mr-3"
+      onError={() => setError(true)} // لو الصورة فشلت في التحميل
+    />
+  );
+};
 
   useEffect(() => {
     if (!teamId || !currentUser) {
@@ -115,7 +137,6 @@ const TeamPage = () => {
 
     if (currentUser.role === "team-lead") {
       fetchAllTasksForTeamLead(teamId)
-
         .then((tasksData) => {
           dispatch(setTasks(tasksData));
         })
@@ -139,15 +160,13 @@ const TeamPage = () => {
     }
   }, [tasks]);
 
-
   const handleTaskCreated = () => {
     if (teamId) {
       fetchTasksTeam(teamId)
         .then((tasksData) => {
           dispatch(setTasks(tasksData));
         })
-        .catch((error) => {
-        });
+        .catch((error) => {});
     }
   };
 
@@ -183,11 +202,6 @@ const TeamPage = () => {
     }
   };
 
-
-
-
-
-
   const handleConfirmDelete = async () => {
     try {
       await dispatch(removeTeam(teams[0]._id));
@@ -200,19 +214,17 @@ const TeamPage = () => {
 
   const handleUpdateTeam = async () => {
     try {
-      await dispatch(updateTeam({ id: teams[0]._id, data: updateData })).unwrap();
+      await dispatch(
+        updateTeam({ id: teams[0]._id, data: updateData })
+      ).unwrap();
 
       setShowUpdateModal(false);
       router.push("/teams");
-
-    } catch (error) {
-    }
-  }
-
+    } catch (error) {}
+  };
 
   useEffect(() => {
     setIsClient(true);
-
 
     if (typeof currentUser === "undefined" || currentUser === null) {
       return;
@@ -235,9 +247,6 @@ const TeamPage = () => {
     dispatch(fetchTeams()).then(() => setHasFetched(true));
   }, [dispatch, currentUser, router]);
 
-
-
-
   const baseUrl = "http://localhost:3001";
   const hasTeam = teams && teams.length > 0;
   const team = hasTeam ? teams[0] : null;
@@ -247,128 +256,127 @@ const TeamPage = () => {
     //   return <div className="p-6"><Loader /></div>;
     // }
 
-
     return (
-<ProtectedRoute>
-  <div className="w-1/5 bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
-    
-    <div className="hidden md:block">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">{team.name}</h2>
-    </div>
+      <ProtectedRoute>
+        <div className="w-1/5 bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
+          <div className="hidden md:block">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              {team.name}
+            </h2>
+          </div>
 
-    <div className="md:hidden space-y-6">
-      {team.teamLeader && team.teamLeader.image && (
-        <img
-          src={
-            team.teamLeader.image.startsWith("http")
-              ? team.teamLeader.image
-              : `${baseUrl}/static/${team.teamLeader.image}`.replace(/\\/g, "/")
-          }
-          alt={team.teamLeader.name}
-          className="w-full max-w-xs mx-auto rounded-full object-cover aspect-square"
-          style={{ objectFit: "cover" }}
-        />
-      )}
-
-      {team.members && team.members.length > 0 && (
-        <div className="space-y-4">
-          {team.members.map((member, index) => {
-            const imageUrl = member.image?.startsWith("http")
-              ? member.image.replace(/\\/g, "/")
-              : `${baseUrl}/static/${member.image}`.replace(/\\/g, "/");
-
-            return (
+          <div className="md:hidden space-y-6">
+            {team.teamLeader && team.teamLeader.image && (
               <img
-                key={member._id || index}
-                src={imageUrl}
-                alt={member.name}
+                src={
+                  team.teamLeader.image.startsWith("http")
+                    ? team.teamLeader.image
+                    : `${baseUrl}/static/${team.teamLeader.image}`.replace(
+                        /\\/g,
+                        "/"
+                      )
+                }
+                alt={team.teamLeader.name}
                 className="w-full max-w-xs mx-auto rounded-full object-cover aspect-square"
                 style={{ objectFit: "cover" }}
               />
-            );
-          })}
-        </div>
-      )}
-    </div>
+            )}
 
-    <div className="hidden md:block">
-      {/* Team Lead */}
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-600 mb-2">Team Lead</h3>
-        <div className="flex items-center">
-          {team.teamLeader && team.teamLeader.image ? (
-            <img
-              src={
-                team.teamLeader.image.startsWith("http")
-                  ? team.teamLeader.image
-                  : `${baseUrl}/static/${team.teamLeader.image}`.replace(/\\/g, "/")
-              }
-              alt={team.teamLeader.name}
-              className="w-10 h-10 rounded-full object-cover border mr-3"
-            />
-          ) : (
-            <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-          )}
-          {team.teamLeader?.name && team.teamLeader?.email ? (
-            <div>
-              <p className="text-gray-800 font-medium text-sm">{team.teamLeader.name}</p>
-              <p className="text-gray-500 text-xs">{team.teamLeader.email}</p>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">No team leader info</p>
-          )}
-        </div>
-      </div>
+            {team.members && team.members.length > 0 && (
+              <div className="space-y-4">
+                {team.members.map((member, index) => {
+                  const imageUrl = member.image?.startsWith("http")
+                    ? member.image.replace(/\\/g, "/")
+                    : `${baseUrl}/static/${member.image}`.replace(/\\/g, "/");
 
-      {/* Members */}
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-600 mb-2">Members</h3>
-        <div className="space-y-3" key={team._id}>
-          {team.members && team.members.length > 0 ? (
-            team.members.map((member, index) => {
-              const uniqueKey = member._id
-                ? `${member._id}-${member.email}`
-                : `member-${index}-${member.email}`;
+                  return (
+                    <img
+                      key={member._id || index}
+                      src={imageUrl}
+                      alt={member.name}
+                      className="w-full max-w-xs mx-auto rounded-full object-cover aspect-square"
+                      style={{ objectFit: "cover" }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-              const imageUrl = member.image?.startsWith("http")
-                ? member.image.replace(/\\/g, "/")
-                : `${baseUrl}/static/${member.image}`.replace(/\\/g, "/");
+          <div className="hidden md:block">
+            {/* Team Lead */}
+         <div className="mb-6">
+  <h3 className="text-sm font-semibold text-gray-600 mb-2">Team Lead</h3>
+  <div className="flex items-center">
+    {team.teamLeader && team.teamLeader.image ? (
+      <ProfileImageWithFallback
+        src={
+          team.teamLeader.image.startsWith("http")
+            ? team.teamLeader.image
+            : `${baseUrl}/static/${team.teamLeader.image}`.replace(/\\/g, "/")
+        }
+        alt={team.teamLeader.name}
+      />
+    ) : (
+      <FaUserCircle className="text-gray-400 text-4xl mr-3" />
+    )}
 
-              return (
-                <div key={uniqueKey} className="flex items-center">
-                  <img
-                    src={imageUrl}
-                    alt={member.name}
-                    className="w-10 h-10 rounded-full object-cover border mr-3"
-                  />
-                  <div>
-                    <p className="text-gray-800 text-sm font-medium">{member.name}</p>
-                    <p className="text-gray-500 text-xs">{member.email}</p>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-gray-500 text-sm">No members found</p>
-          )}
-        </div>
-      </div>
-
+    {team.teamLeader?.name && team.teamLeader?.email ? (
       <div>
-        <h3 className="text-sm font-semibold text-gray-600 mb-2">Description</h3>
-        <p className="text-gray-700 text-sm">{team.description}</p>
+        <p className="text-gray-800 font-medium text-sm">
+          {team.teamLeader.name}
+        </p>
+        <p className="text-gray-500 text-xs">{team.teamLeader.email}</p>
       </div>
-    </div>
+    ) : (
+      <p className="text-gray-500 text-sm">No team leader info</p>
+    )}
   </div>
-</ProtectedRoute>
+</div>
 
+            {/* Members */}
+        <div className="mb-6">
+  <h3 className="text-sm font-semibold text-gray-600 mb-2">Members</h3>
+  <div className="space-y-3" key={team._id}>
+    {team.members && team.members.length > 0 ? (
+      team.members.map((member, index) => {
+        const uniqueKey = member._id
+          ? `${member._id}-${member.email}`
+          : `member-${index}-${member.email}`;
 
+        const imageUrl = member.image?.startsWith("http")
+          ? member.image.replace(/\\/g, "/")
+          : `${baseUrl}/static/${member.image}`.replace(/\\/g, "/");
+
+        return (
+          <div key={uniqueKey} className="flex items-center">
+            <ProfileImageWithFallback src={imageUrl} alt={member.name} />
+            <div>
+              <p className="text-gray-800 text-sm font-medium">{member.name}</p>
+              <p className="text-gray-500 text-xs">{member.email}</p>
+            </div>
+          </div>
+        );
+      })
+    ) : (
+      <p className="text-gray-500 text-sm">No members found</p>
+    )}
+  </div>
+</div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                Description
+              </h3>
+              <p className="text-gray-700 text-sm">{team.description}</p>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
     );
   };
 
   // if (!hasFetched) return <div className="p-10"><Loader /></div>;
-
-
 
   return (
     <ProtectedRoute>
@@ -376,7 +384,9 @@ const TeamPage = () => {
         {/* Navbar for team-lead */}
         {hasTeam && currentUser?.role === "team-lead" && (
           <div className="h-auto bg-white shadow px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">Team Dashboard</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+              Team Dashboard
+            </h1>
 
             <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
               <button
@@ -404,7 +414,6 @@ const TeamPage = () => {
               </button>
             </div>
           </div>
-
         )}
 
         {/* Main Content */}
@@ -423,7 +432,9 @@ const TeamPage = () => {
                   </button>
                 </div>
               ) : (
-                <p className="text-2xl font-bold">You are not part of any team yet</p>
+                <p className="text-2xl font-bold">
+                  You are not part of any team yet
+                </p>
               )}
             </div>
           )}
@@ -433,7 +444,12 @@ const TeamPage = () => {
             <>
               {renderSidebar(teams[0])}
               <div className="flex-1 bg-gray-50 p-6 overflow-y-auto">
-                <Typography variant="h5" component="h2" color="textPrimary" gutterBottom>
+                <Typography
+                  variant="h5"
+                  component="h2"
+                  color="textPrimary"
+                  gutterBottom
+                >
                   Tasks
                 </Typography>
 
@@ -458,7 +474,6 @@ const TeamPage = () => {
                           height: "100%",
                         }}
                       >
-
                         {/* Badge on the LEFT */}
                         <Badge
                           color={task.completed ? "success" : "error"}
@@ -469,7 +484,9 @@ const TeamPage = () => {
                             left: 10,
                             zIndex: 0,
                             "& .MuiBadge-dot": {
-                              backgroundColor: task.completed ? green[500] : red[500],
+                              backgroundColor: task.completed
+                                ? green[500]
+                                : red[500],
                             },
                           }}
                         />
@@ -491,7 +508,10 @@ const TeamPage = () => {
                               <Menu
                                 id={`menu-${task._id}`}
                                 anchorEl={anchorEl}
-                                open={Boolean(anchorEl) && selectedTaskId === task._id}
+                                open={
+                                  Boolean(anchorEl) &&
+                                  selectedTaskId === task._id
+                                }
                                 onClose={handleClose}
                                 anchorOrigin={{
                                   vertical: "top",
@@ -516,12 +536,14 @@ const TeamPage = () => {
                                     setShowUpdateTaskModal(true);
                                     handleClose();
                                   }}
-                                  sx={{ color: '#3b82f6' }}
+                                  sx={{ color: "#3b82f6" }}
                                 >
-                                  <EditIcon fontSize="small" sx={{ mr: 1, color: '#3b82f6' }} />
+                                  <EditIcon
+                                    fontSize="small"
+                                    sx={{ mr: 1, color: "#3b82f6" }}
+                                  />
                                   Update
                                 </MenuItem>
-
 
                                 <MenuItem
                                   onClick={() => {
@@ -529,42 +551,51 @@ const TeamPage = () => {
                                     setShowDeleteTaskModal(true);
                                     handleClose();
                                   }}
-                                  sx={{ color: '#ef4444' }}
+                                  sx={{ color: "#ef4444" }}
                                 >
-                                  <DeleteIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }} />
+                                  <DeleteIcon
+                                    fontSize="small"
+                                    sx={{ mr: 1, color: "#ef4444" }}
+                                  />
                                   Delete
                                 </MenuItem>
 
-
                                 <MenuItem
-                                  onClick={() => { handleClose(); }}
-                                  sx={{ color: task.completed ? '#ef4444' : '#10b981' }}
+                                  onClick={() => {
+                                    handleClose();
+                                  }}
+                                  sx={{
+                                    color: task.completed
+                                      ? "#ef4444"
+                                      : "#10b981",
+                                  }}
                                 >
                                   {task.completed ? (
                                     <>
-                                      <button onClick={() => handleToggle(task._id)}>
-                                        <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }}
-
+                                      <button
+                                        onClick={() => handleToggle(task._id)}
+                                      >
+                                        <CancelIcon
+                                          fontSize="small"
+                                          sx={{ mr: 1, color: "#ef4444" }}
                                         />
                                         Mark as Incomplete
                                       </button>
-
                                     </>
                                   ) : (
                                     <>
                                       <button
                                         onClick={() => handleToggle(task._id)}
                                       >
-                                        <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }}
-
+                                        <CheckCircleIcon
+                                          fontSize="small"
+                                          sx={{ mr: 1, color: "#10b981" }}
                                         />
                                         Mark as Complete
                                       </button>
-
                                     </>
                                   )}
                                 </MenuItem>
-
                               </Menu>
                             )}
                           </>
@@ -585,7 +616,10 @@ const TeamPage = () => {
                               <Menu
                                 id={`menu-${task._id}`}
                                 anchorEl={anchorEl}
-                                open={Boolean(anchorEl) && selectedTaskId === task._id}
+                                open={
+                                  Boolean(anchorEl) &&
+                                  selectedTaskId === task._id
+                                }
                                 onClose={handleClose}
                                 anchorOrigin={{
                                   vertical: "top",
@@ -604,37 +638,42 @@ const TeamPage = () => {
                                   },
                                 }}
                               >
-
-
                                 <MenuItem
-                                  onClick={() => { handleClose(); }}
-                                  sx={{ color: task.completed ? '#ef4444' : '#10b981' }}
+                                  onClick={() => {
+                                    handleClose();
+                                  }}
+                                  sx={{
+                                    color: task.completed
+                                      ? "#ef4444"
+                                      : "#10b981",
+                                  }}
                                 >
                                   {task.completed ? (
                                     <>
-                                      <button onClick={() => handleToggle(task._id)}>
-                                        <CancelIcon fontSize="small" sx={{ mr: 1, color: '#ef4444' }}
-
+                                      <button
+                                        onClick={() => handleToggle(task._id)}
+                                      >
+                                        <CancelIcon
+                                          fontSize="small"
+                                          sx={{ mr: 1, color: "#ef4444" }}
                                         />
                                         Mark as Incomplete
                                       </button>
-
                                     </>
                                   ) : (
                                     <>
                                       <button
                                         onClick={() => handleToggle(task._id)}
                                       >
-                                        <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: '#10b981' }}
-
+                                        <CheckCircleIcon
+                                          fontSize="small"
+                                          sx={{ mr: 1, color: "#10b981" }}
                                         />
                                         Mark as Complete
                                       </button>
-
                                     </>
                                   )}
                                 </MenuItem>
-
                               </Menu>
                             )}
                           </>
@@ -645,45 +684,58 @@ const TeamPage = () => {
                             variant="h6"
                             gutterBottom
                             sx={{
-                              color: 'primary.main',
-                              fontWeight: 'bold',
+                              color: "primary.main",
+                              fontWeight: "bold",
                             }}
                           >
                             {task.title}
                           </Typography>
 
-
-                          <Typography variant="body2" color="textSecondary" paragraph>
+                          <Typography
+                            variant="body2"
+                            color="textSecondary"
+                            paragraph
+                          >
                             {task.description}
                           </Typography>
                           <Typography variant="caption" color="textPrimary">
                             Due: {new Date(task.dueDate).toLocaleDateString()}
                           </Typography>
 
-                          <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            mt={2}
+                          >
                             <Typography variant="body2" color="textSecondary">
-                              Assigned to: {task.assignedTo?.name ?? "Unassigned"}
+                              Assigned to:{" "}
+                              {task.assignedTo?.name ?? "Unassigned"}
                             </Typography>
                           </Box>
                         </CardContent>
-                        <div style={{ position: 'relative', width: '100%', height: '50px' }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            width: "100%",
+                            height: "50px",
+                          }}
+                        >
                           <IconButton
-                            style={{ position: 'absolute', right: '8px', bottom: '8px' }}
+                            style={{
+                              position: "absolute",
+                              right: "8px",
+                              bottom: "8px",
+                            }}
                             onClick={() => handleOpenComments(task)}
                             size="small"
                           >
                             <ChatBubbleOutlineIcon fontSize="small" />
-                            <span className="ml-1 text-sm">{task.commentsCount ?? 0}</span>
+                            <span className="ml-1 text-sm">
+                              {task.commentsCount ?? 0}
+                            </span>
                           </IconButton>
                         </div>
-
-
-
-
-
-
-
-
                       </Card>
                     ))}
                   </div>
@@ -691,14 +743,11 @@ const TeamPage = () => {
               </div>
             </>
           )}
-
-
         </div>
 
         {/* Create Modal */}
         {showCreateTeamModal && (
-          <CreateTeamModal onClose={() => setShowCreateTeamModal(false)}
-          />
+          <CreateTeamModal onClose={() => setShowCreateTeamModal(false)} />
         )}
         {/* Delete Modal */}
         {showDeleteModal && (
@@ -721,7 +770,6 @@ const TeamPage = () => {
             teamId={teamId}
             onClose={() => setCreateTaskModal(false)}
             onTaskCreated={handleTaskCreated}
-
           />
         )}
         {/* Update Task Modal */}
@@ -751,14 +799,9 @@ const TeamPage = () => {
             task={selectedTaskForComments}
           />
         )}
-
-
-
-
       </div>
     </ProtectedRoute>
   );
 };
 
 export default TeamPage;
-

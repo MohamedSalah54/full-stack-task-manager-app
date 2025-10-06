@@ -46,7 +46,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, handleCloseModal }) =
     handleCloseModal();
   
     if (user) {
-      router.push('/admin/dashboard/users');
+      router.push('/admin/users');
     } else {
       toast.error('Something went wrong');
     }

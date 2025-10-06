@@ -61,25 +61,30 @@ export default function ProfilePage() {
     );
   }
 
-  // if (error) {
-  //   return (
-  //     <div className="flex items-center justify-center h-[60vh]">
-  //       <div className="text-lg text-red-500 font-semibold">{error}</div>
-  //     </div>
-  //   );
-  // }
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-lg text-red-500 font-semibold">{error}</div>
+      </div>
+    );
+  }
 
-  // if (!profile) {
-  //   return (
-  //     <div className="flex items-center justify-center h-[60vh]">
-  //       <div className="text-lg text-red-500 font-semibold">No profile data found.</div>
-  //     </div>
-  //   );
-  // }
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-lg text-red-500 font-semibold">No profile data found.</div>
+      </div>
+    );
+  }
 
-  const profileImageUrl = profile?.profileImage
+console.log("🧩 [FRONTEND] Profile image path from DB:", profile?.profileImage);
+
+const profileImageUrl = profile?.profileImage
   ? `http://localhost:3001/static/${profile.profileImage.replace(/\\/g, '/')}`
   : '';
+
+console.log("🌍 [FRONTEND] Final image URL:", profileImageUrl);
+
 
   return (
     <ProtectedRoute>

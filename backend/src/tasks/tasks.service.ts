@@ -479,9 +479,10 @@ export class TasksService {
 
     const oldTeam = await this.teamModel.findById(oldTask.teamId).exec();
 
-    if ((updateTaskDto.assignedTo as Types.ObjectId).toString()) {
-      updateTaskDto.assignedTo = new Types.ObjectId(updateTaskDto.assignedTo);
-    }
+ if (updateTaskDto.assignedTo) {
+  updateTaskDto.assignedTo = new Types.ObjectId(updateTaskDto.assignedTo);
+}
+
 
     const updatedTask = await this.taskModel.findOneAndUpdate(
       { _id: taskId, createdBy: userObjectId },
@@ -494,10 +495,12 @@ export class TasksService {
     }
 
 
-    if (
-      updateTaskDto.assignedTo &&
-      updateTaskDto.assignedTo.toString() !== (oldTask.assignedTo as Types.ObjectId)?.toString()
-    ) {
+ if (
+  updateTaskDto.assignedTo &&
+  oldTask.assignedTo &&
+  updateTaskDto.assignedTo.toString() !== oldTask.assignedTo.toString()
+)
+ {
       if (oldTask.assignedTo) {
         const oldAssignedUser = await this.userModel.findById(oldTask.assignedTo).exec();
         if (oldAssignedUser && oldAssignedUser.tasks) {
